@@ -7,7 +7,7 @@ define y = Character("You",color="051094")
 define s = Character("Soldier",color="08A045")
 define a = Character("AI",color="DC143C")
 
-# define config.menu_include_disabled = True
+define config.menu_include_disabled = True
 default dev_powers = True
 default time_currency = 20
 default food = 80
@@ -419,105 +419,209 @@ label prologue:
     centered "Prolouge End."
     window auto
 
+    jump new_day
+
+
+label pass_time(minutes_spent, action, context):
+
+    # ==========================================
+    # PHASE 1: THE MATH & INTERRUPTIONS
+    # ==========================================
+    
+    # If they are unsuspicious but don't have enough time, the soldier walks in on them halfway through.
+    if context == "unsuspicious" and free_time_remaining < minutes_spent:
+        $ actual_time_spent = free_time_remaining
+        $ got_interrupted = True
+    else:
+        $ actual_time_spent = minutes_spent
+        $ got_interrupted = False
+
+    # Apply the universal stat drain based on the actual time spent
+    $ free_time_remaining -= actual_time_spent
+    $ food -= actual_time_spent
+    $ water -= actual_time_spent
+
+    if got_interrupted:
+        scene black_screen with fade
+        "Your free time is up before you were done."
+        "Make sure to have enough time before doing this action again."
+
+
+    # ==========================================
+    # PHASE 2: THE BIOLOGICAL CHECKS (Highest Priority)
+    # ==========================================
+    
+    if food <= 0 or water <= 0:
+        hide screen status_hud
+        window hide
+        scene black_screen with fade
+        
+        if action == "inside_vent":
+            "You collapsed in the dusty ventilation shaft. Knowing that you are so close to escaping, yet feels far. Heartbreaking."
+        elif action == "pc":
+            "You collapsed at your PC, your head smashing to your keyboard. The screen is still on, showing random characters being typed, a gibberish mess that no one will understand and remember you for it."
+        elif action == "painting":
+            "You collapsed while searching the painting. This painting is not that good that you are willing to die for it."
+        elif action == "plant":
+            "You die next to the plant, as the plant have outlived another test subject."
+        elif action == "drawer":
+            "You die slumped over the drawers, which claimed another victim."
+        elif action == "door":
+            "You collapse at the door, without even getting the chance to see what is in the other side."
+        elif action == "opening_vent":
+            "You collapsed while trying to open the vent. Dying without knowing its secrets."
+        elif action == "closing_vent":
+            "You collapsed trying to close the vent, as the vent fell down and hit your head as well. Making sure that you will never rise again."
+        elif action == "into_vent":
+            "You collapsed trying to get into the vent as your body free falls into the room, like the vent throwing you up in disgust."
+        elif action == "unto_vent":
+            "You collapsed trying to get out of the vent, as if the vent is trying to keep you in there forever."
+            
+        if food <= 0 and water <= 0:
+            "Game Over. You died due to hunger and thirst."
+        elif food <= 0:
+            "Game Over. You have died from hunger."
+        elif water <= 0:
+            "Game Over. You have died from thirst."
+            
+        window auto
+        jump game_over
+
+
+    # ==========================================
+    # PHASE 3: THE AUTHORITY CHECKS (Soldier / Time Limits)
+    # ==========================================
+    
+    # Check for negative free time OR hitting exactly 0 while doing something bad
+    if free_time_remaining < 0 or (free_time_remaining == 0 and context == "suspicious"):
+        hide screen status_hud
+        window hide
+        scene black_screen with fade
+        
+        if action == "inside_vent":
+            centered "Free Time is up. You were found in the vents crawling and is promptly executed."
+            centered "Game Over. Be careful to have enough free time remaining to navigate the vents and also leave enough free time to get out of the vents."
+        elif action == "opening_vent":
+            centered "Free Time is up. You were found trying to open the vents and escape."
+            centered "Your escape plan is discovered and was promptly put down. Game Over."
+        elif action == "closing_vent":
+            y "Oh shit, I don't have time to fix the vent before the soldier comes in. I am dead!"
+            centered "Free Time is up. You were found with a screwdriver trying to close the vents."
+            centered "Your escape plan is discovered and was promptly put down. Game Over."
+            centered "Be careful to have enough free time remaining to navigate the vents and also leave enough free time to get out of the vents."
+        elif action == "into_vent" or action == "unto_vent":
+            centered "Free Time is up. You were found trying to get in/out of the vents and escape."
+            centered "Your escape plan is discovered and was promptly put down. Game Over."
+            centered "Be careful to have enough free time remaining to navigate the vents and also leave enough free time to get out of the vents."
+            
+        window auto
+        jump game_over
+        
+    # Check for a normal, safe end of the day
+    elif got_interrupted == 0:
+        hide screen status_hud
+        window hide
+        scene black_screen with fade
+        centered "Free Time is up. The day is over. You are then escorted back to your cell."
+        window auto
+        jump new_day
+
+    # ==========================================
+    # PHASE 4: SAFE RETURN
+    # ==========================================
+    # If they survived all the checks above, they successfully did the action!
+    return
+
+
+label new_day:
+    hide screen status_hud
+    $ days_passed += 1
+    window hide
+    scene black_screen
+    centered "The next day..."
+    window auto
     jump before_work
+
+
+label buy_item(item_type, item_size):
+
+    $ sizes = {"small": (20, 10), "medium": (50, 20), "large": (80, 30)}
+    $ amount, cost = sizes[item_size]
+
+    if time_currency < cost:
+        "You don't have enough TME to buy this item!"
+        return
+
+    if item_type == "food":
+        $ food = min(food + amount, max_food_and_water)
+    elif item_type == "water":
+        $ water = min(water + amount, max_food_and_water)
+    $ time_currency -= cost
+    "Purchased [amount] [item_type] for [cost] TME."
+    return
+
 
 label before_work:
 
-    $ days_passed += 1
-
     show screen status_hud with fade
     scene pc_sit_01 with fade
-
     "What do you want to do?"
 
     menu:
 
-        "Skip Shift." if dev_powers == True:
-
-            $ food += 100
-            $ water += 100
+        "Skip Shift." if dev_powers:
+            $ food = min(food + 100, max_food_and_water)
+            $ water = min(water + 100, max_food_and_water)
             $ time_currency += 100
             jump after_work_01
 
         "Start your shift.":
-
+            window hide
             scene black_screen with fade
-
-            "Shift Starting..."
-
+            centered "Shift Starting..."
+            window auto
             jump work_hours
 
         "Spend TME.":
+            call choose_spend_type(False)
+            $ spend_type = _return
+            if spend_type == "food" or spend_type == "water":
+                call choose_spend_size(spend_type)
+                $ spend_size = _return
+                if spend_size:
+                    call buy_item(spend_type, spend_size)
+            jump before_work
 
-            "What do you want to spend your TME on? You currently have [time_currency] TME."
 
-            menu:
+label choose_spend_type(can_buy_freetime):
+    menu:
+        "Food":
+            return "food"
+        "Water":
+            return "water"
+            
+        # This option will ONLY appear if we pass 'True' to the function!
+        "Free Time" if can_buy_freetime:
+            return "free_time"
+            
+        "I changed my mind":
+            return None
 
-                "Food":
 
-                    "Size?"
+label choose_spend_size(spend_type):
+    $ label_map = {"food": "Food", "water": "Thirst"}
+    $ display_word = label_map[spend_type]
 
-                    menu:
+    menu:
+        "Small (+20 [display_word] for 10 TME)":
+            return "small"
+        "Medium (+50 [display_word] for 20 TME)":
+            return "medium"
+        "Large (+80 [display_word] for 30 TME)":
+            return "large"
+        "I changed my mind":
+            return None
 
-                        "Small (+20 Food for 10 TME)" if time_currency >= 10:
-
-                            $ food += 20
-                            $ time_currency -= 10
-                            $ food = min(food, max_food_and_water)
-                            jump before_work
-
-                        "Medium (+50 Food for 20 TME)" if time_currency >= 20:
-
-                            $ food += 50
-                            $ time_currency -= 20
-                            $ food = min(food, max_food_and_water)
-                            jump before_work
-
-                        "Large (+80 Food for 30 TME)" if time_currency >= 30:
-
-                            $ food += 80
-                            $ time_currency -= 30
-                            $ food = min(food, max_food_and_water)
-                            jump before_work
-
-                        "I changed my mind":
-
-                            jump before_work
-                
-                "Water":
-
-                    "Size?"
-
-                    menu:
-
-                        "Small (+20 Thirst for 10 TME)" if time_currency >= 10:
-
-                            $ water += 20
-                            $ time_currency -= 10
-                            $ water = min(water, max_food_and_water)
-                            jump before_work
-
-                        "Medium (+50 Thirst for 20 TME)" if time_currency >= 20:
-
-                            $ water += 50
-                            $ time_currency -= 20
-                            $ water = min(water, max_food_and_water)
-                            jump before_work
-
-                        "Large (+80 Thirst for 30 TME)" if time_currency >= 30:
-
-                            $ water += 80
-                            $ time_currency -= 30
-                            $ water = min(water, max_food_and_water)
-                            jump before_work
-
-                        "I changed my mind":
-
-                            jump before_work
-
-                "I changed my mind":
-
-                    jump before_work
 
 label work_hours:
 
@@ -546,7 +650,19 @@ label hacking_loop:
     if time_currency <= 0:
 
         "SYSTEM: TIME DEPLETED. INITIATING TERMINATION PROTOCOL."
-        jump game_over_01
+        
+        scene shoot_01
+        s "You have reached TME below 0. You have failed spectacularly. Maybe you were not that good at all in the first place."
+        y "Please give me one more chance."
+        s "Contract says going below zero means failure. And failure means death. It is unfortunate that we wasted our resources on a failure like you."
+        s "Goodbye."
+
+        hide screen status_hud
+        window hide
+        scene black_screen with fade
+        centered "Your TME reached 0 or below. You failed to manage your TME properly. Game Over."
+        window auto
+        jump game_over
         
     "You currently have [time_currency] TME."
     
@@ -594,39 +710,38 @@ label hacking_loop:
 label after_work_01:
 
     scene pc_sit_01
-    
-    y "Nice I got it."
-    
+    y "Nice, I got it."
     "Shift Complete. You now have a total of [time_currency] TME."
 
     $ stat_penalty = tries
 
-    "You became more hungry and thirsty after your shift."
+    if tries == 0:
+        "You completed your shift perfectly, with no mistakes. That's what I call Luck! Go buy a lotto."
+
+    if stat_penalty > 0:
+        "You took [tries] tries to complete the shift. Deducted another [stat_penalty] from food and water."
+        $ food -= stat_penalty
+        $ water -= stat_penalty
+
+    "After hard work, you became more hungry and thirsty after your shift."
 
     $ food -= 30
     $ water -= 30
-
-    "You took [tries] tries to complete the shift. Deducted another [stat_penalty] to food and water."
-
-    $ food -= stat_penalty
-    $ water -= stat_penalty
 
     if food <= 0 or water <= 0:
         hide screen status_hud
         scene black_screen with fade
         "You collapse to the floor. Your body couldn't handle the physical toll..."
-        s "Hey! Get up!... Oh well, unto the next text subject."
+        s "Hey! Get up!... Oh well, onto the next test subject."
 
         if food <= 0 and water > 0:
-            "Game Over. You have died from hunger"
-
-        elif water <= 0 and food > 0: 
+            "Game Over. You have died from hunger."
+        elif water <= 0 and food > 0:
             "Game Over. You have died from thirst."
-
         else:
             "Game Over. You have died from hunger and thirst."
 
-        jump game_over_02
+        jump game_over
 
     jump after_work_02
 
@@ -635,266 +750,137 @@ label after_work_02:
     scene room_overview
 
     "What do you want to do?"
+
     menu:
         "Spend TME":
-
-            "What do you want to spend your TME on? You currently have [time_currency] TME."
-            menu:
-
-                "Food":
-
-                    "Size?"
-                    menu:
-
-                        "Small (+20 Food for 10 TME)" if time_currency >= 10:
-
-                            $ food += 20
-                            $ time_currency -= 10
-                            $ food = min(food, max_food_and_water)
-                            jump after_work_02
-
-                        "Medium (+50 Food for 20 TME)" if time_currency >= 20:
-
-                            $ food += 50
-                            $ time_currency -= 20
-                            $ food = min(food, max_food_and_water)
-                            jump after_work_02
-
-                        "Large (+80 Food for 30 TME)" if time_currency >= 30:
-
-                            $ food += 80
-                            $ time_currency -= 30
-                            $ food = min(food, max_food_and_water)
-                            jump after_work_02
-
-                        "I changed my mind":
-
-                            jump after_work_02
-                
-                "Water":
-
-                    "Size?"
-                    menu:
-
-                        "Small (+20 Thirst for 10 TME)" if time_currency >= 10:
-
-                            $ water += 20
-                            $ time_currency -= 10
-                            $ water = min(water, max_food_and_water)
-                            jump after_work_02
-
-                        "Medium (+50 Thirst for 20 TME)" if time_currency >= 20:
-
-                            $ water += 50
-                            $ time_currency -= 20
-                            $ water = min(water, max_food_and_water)
-                            jump after_work_02
-
-                        "Large (+80 Thirst for 30 TME)" if time_currency >= 30:
-
-                            $ water += 80
-                            $ time_currency -= 30
-                            $ water = min(water, max_food_and_water)
-                            jump after_work_02
-
-                        "I changed my mind":
-
-                            jump after_work_02
-
-                "Free Time":
-
-                    "How much TME to spend? (1 TME = 1 Minute)"
-                    
-                    # 1. Blocks all letters and negative signs (-)
-                    $ user_input = renpy.input("Enter amount of TME to spend:", allow="0123456789")
-
-                    if user_input == "":
-                        $ input_number = 0
-
-                    else:
-                        # 2. Converts to integer.
-                        $ input_number = int(user_input)
-                    
-                    # 3. Cancel the transaction if they type 0
-                    if input_number == 0:
-
-                        "Purchase cancelled."
-                        jump after_work_02
-                        
-                    # 4. Check if they have enough TME
-                    elif input_number > time_currency:
-
-                        "You don't have enough TME for that!"
-                        jump after_work_02
-                        
-                    # 5. Success! Do the math.
-                    else:
-
-                        $ time_currency -= input_number
-                        $ free_time_remaining += input_number
-                        "Purchased [input_number] minutes of Free Time."
-                        jump free_time
-
-                "I changed my mind":
-
+            call choose_spend_type(True)
+            $ spend_type = _return
+            if spend_type == "food" or spend_type == "water":
+                call choose_spend_size(spend_type)
+                $ spend_size = _return
+                if spend_size:
+                    call buy_item(spend_type, spend_size)
+                jump after_work_02
+            elif spend_type == "free_time":
+                $ user_input = renpy.input("Enter amount of TME to spend (1 TME = 1 Minute):", allow="0123456789")
+                if user_input == "":
+                    $ input_number = 0
+                else:
+                    $ input_number = int(user_input)
+                if input_number == 0:
+                    "Purchase cancelled."
                     jump after_work_02
+                elif input_number > time_currency:
+                    "You don't have enough TME for that!"
+                    jump after_work_02
+                else:
+                    $ time_currency -= input_number
+                    $ free_time_remaining += input_number
+                    "Purchased [input_number] minutes of Free Time."
+                    jump free_time
+            jump after_work_02
 
         "I am done for today":
-
             scene opening_convo_01
-
             s "Okay let's go to your cell."
-
             scene black_screen with fade
-
             "..."
-
             "The next morning..."
-
             jump before_work
 
 
 label free_time:
 
+    # Show the room overview and HUD
+    show screen status_hud
     scene room_overview
 
     if first_time_free_time:
-
         y "Okay, now that I have free time, let's explore this area to check for anything that can help me escape here."
         $ first_time_free_time = False
-    
-    if free_time_remaining == 0:
 
+    # Check for end of free time
+    if free_time_remaining <= 0:
         scene black_screen with fade
-
-        "Free Time is up. Time to go back to cell."
-
+        "Free Time is up. Time to go back to your cell."
         scene opening_convo_01
-
-        s "Okay let's go to your cell."
-
+        s "Okay, let's go to your cell."
         scene black_screen with fade
+        jump new_day
 
-        jump work_hours
-
-    if free_time_remaining < 0:
-        jump game_over_01
-
-    if food <= 0 and water <= 0:
-        hide screen status_hud
-        scene black_screen with fade
-        "Game Over. You died due to hunger and thirst."
-        jump game_over_02
-    
-    elif food <= 0:
-        hide screen status_hud
-        scene black_screen with fade
-        "Game Over. You died due to hunger."
-        jump game_over_02
-
-    elif water <= 0:
-        hide screen status_hud
-        scene black_screen with fade
-        "Game Over. You died due to thirst."
-        jump game_over_02
-
-    "What do you want to do on your free time?"
+    # Main exploration UI
+    "What do you want to do during your free time?"
 
     call screen room_exploration_ui
+
+    # After returning from an action, re-enter free_time loop
+    return
 
 
 label end_free_time:
 
     y "I am done for the day."
-
     if free_time_remaining > 0:
-
         $ time_currency += free_time_remaining
-
         "Remaining [free_time_remaining] Free Time added back to TME. You now have [time_currency] TME."
-
         $ free_time_remaining = 0
 
     scene opening_convo_01
-
     s "Okay let's go to your cell."
-
     scene black_screen with fade
-
     "..."
-
     "The next morning..."
-
-    jump before_work
+    jump new_day
 
 
 label check_door:
 
     "What to do?"
-
     menu:
 
         "Observe (Spend 1 Minute)":
-
             scene room_look_door
-
-            y "This door is made on all metal. This does not seem breakable or lockpickable."
-
-            y "I don't know what lies ahead of this door, maybe the soldier is just waiting outside, so trying to escape through this door is not the best idea."
-
-            $ free_time_remaining -= 1
-            $ food -= 1
-            $ water -= 1
-            jump free_time
+            y "This door is made of solid metal. It looks impenetrable, and there's no visible lock or handle on this side—just a seamless surface."
+            y "I don't know what lies beyond it. Maybe the soldier is guarding it, or perhaps it's just another part of this twisted setup. Escaping through here seems risky without more info."
+            call pass_time(1, "door", "unsuspicious")
 
         "Try to open the door (Spend 1 Minute)":
-
+            call pass_time(1, "door", "unsuspicious")
             scene black_screen with fade
+            "You spent 1 minute trying to open the door..."
+            scene room_look_door with fade
+            y "As expected, the door is firmly locked. No give at all. I need to find another way."
 
-            "You spent 1 minute searching through the door..."
+        "Listen at the door (Spend 2 Minutes)":
+            call pass_time(2, "door", "unsuspicious")
+            scene black_screen with fade
+            "You press your ear against the door and listen for 2 minutes..."
+            scene room_look_door with fade
+            y "I can hear faint echoes, maybe distant footsteps or machinery, but nothing clear. It's hard to tell if anyone's right outside."
 
-            scene room_look_pc with fade
-
-            y "Ughh as expected, the door is locked."
-
-            $ free_time_remaining -= 1
-            $ food -= 1
-            $ water -= 1
+        "I changed my mind":
             jump free_time
 
 
 label check_plant:
 
     "What to do?"
-
     menu:
 
         "Observe (Spend 1 Minute)":
 
             scene room_look_plant
-
-            y "An in-door plant? Cool. A companion I can grow old here with. Hopefully I can get our here before this dies of old age."
-
+            call pass_time(1, "plant", "unsuspicious")
+            y "An indoor plant? Cool. A companion I can grow old here with. Hopefully I can get our here before this dies of old age."
             y "Maybe there is something hidden here? maybe below the pot or in the soil?"
-
-            $ free_time_remaining -= 1
-            $ food -= 1
-            $ water -= 1
             jump free_time
 
-        "Search through the plant (Spend 5 Minute)" if free_time_remaining >= 5:
-
+        "Search through the plant (Spend 5 Minutes)" if free_time_remaining >= 5:
+            call pass_time(5, "plant", "unsuspicious")
             scene black_screen with fade
-
-            "You spent 5 minutes searching through the plant..."
-
-            scene room_look_pc with fade
-
+            "You spend 5 minutes carefully searching through the plant..."
+            scene room_look_plant with fade
             y "Ughh as expected, nothing here, just a plant. Hopefully I did not accidentally kill this plant."
-
-            $ free_time_remaining -= 5
-            $ food -= 5
-            $ water -= 5
             jump free_time
 
         "I changed my mind":
@@ -904,77 +890,38 @@ label check_plant:
 
 label check_pc:
 
-    "What to do?"
+    "What do you want to do?"
 
     menu:
 
         "Observe (Spend 1 Minute)":
-
+            call pass_time(1, "pc", "unsuspicious")
             scene room_look_pc
-
-            y "This PC is just your average PC. Nothing too fancy, just an ol reliable company PC."
-
-            y "Man my PC is way better than this trash."
-
-            y "Hey, maybe there is something inside?"
-
-            $ free_time_remaining -= 1
-            $ food -= 1
-            $ water -= 1
+            y "This PC looks pretty standard—nothing fancy, just a typical company machine."
+            y "Honestly, my old PC was way better than this trash."
+            y "Maybe there's something interesting inside?"
             jump free_time
 
-        "Search through the PC (Spend 5 Minute)" if free_time_remaining >= 5:
-
+        "Search through the PC (Spend 5 Minutes)" if free_time_remaining >= 5:
+            call pass_time(5, "pc", "unsuspicious")
             scene black_screen with fade
-
-            "You spent 5 minutes searching through the PC..."
-
+            "You spend 5 minutes searching through the PC's hardware and case..."
             scene room_look_pc with fade
-
-            y "Ughh as expected, nothing here, just normal PC hardware and parts."
-
-            $ free_time_remaining -= 5
-            $ food -= 5
-            $ water -= 5
+            y "No hidden compartments or loose parts. Just a regular PC."
             jump free_time
 
-        "Spend 30 minutes deciphering. ([deciphering]/3)" if cipher_found == True and deciphering < 4:
-
-            if free_time_remaining < 30:
-                "You don't have enough Free Time to do this!"
-                jump check_pc
-
-            if food < 30 and water < 30:
-                hide screen status_hud
-                screen black_screen with fade
-                "You tried to decipher the cipher, but died during the process due to hunger and thirst."
-                "Game Over. Make sure you have enough food and water before doing any actions."
-                jump game_over_02
-            
-            elif food < 30:
-                hide screen status_hud
-                scene black_screen with fade
-                "You tried to decipher the cipher, but died during the process due to hunger."
-                "Game Over. Make sure you have enough food before doing any actions."
-                jump game_over_02
-
-            elif water < 30:
-                hide screen status_hud
-                scene black_screen with fade
-                "You tried to decipher the cipher, but died during the process due to thirst."
-                "Game Over. Make sure you have enough water before doing any actions."
-                jump game_over_02
-
+        "Spend 30 minutes deciphering. ([deciphering]/3)" if cipher_found and deciphering < 4 and free_time_remaining >= 30:
+            call pass_time(30, "pc", "unsuspicious")
             scene black_screen with fade
-            "You spent 30 minutes deciphering the cipher..."
+            "You spend 30 minutes working on deciphering the cipher..."
             scene pc_sit_01 with fade
             if deciphering == 1:
-                "Ugh... This is harder than I thought. Need more time to decipher this."
+                "This is tougher than I thought. I need more time to crack it."
             elif deciphering == 2:
-                "Getting there... I am close to deciphering it. Little bit more time and I can finally see what is in this cipher."
+                "I'm getting closer... just a bit more effort and I should have it."
             elif deciphering == 3:
-                "Done. I have finally deciphered this."
-                "The decoded cipher seems like a message from a previous test subject."
+                "Done. I have finally deciphered the message."
+                "It seems like a message from a previous test subject."
                 '"I am a previous test subject. If you are another test subject reading this, do not believe their lies!"'
                 y "{i}Well, no shit sherlock.{/i}"
                 '"I have hidden a useful tool on top of the second drawer. No one checks the upper portion of a drawer so I am confident it is still there."'
@@ -982,74 +929,51 @@ label check_pc:
                 y "{i}I wonder what that tool is. Let's check the second drawer.{/i}"
                 $ cipher_decoded = True
             $ deciphering += 1
-            $ free_time_remaining -= 30
-            $ food -= 30
-            $ water -= 30
             jump free_time
 
         "I changed my mind":
-
             jump free_time
 
 
 label check_drawer_01:
-
+    call pass_time(1, "drawer", "unsuspicious")
     scene drawer_01_open
-
     "Nothing."
-
-    $ free_time_remaining -= 1
-    $ food -= 1
-    $ water -= 1
     jump free_time
 
 
 label check_drawer_02:
 
     if cipher_decoded == False:
-
+        call pass_time(1, "drawer", "unsuspicious")
         scene drawer_02_open
         "Empty."
-        $ free_time_remaining -= 1
-        $ food -= 1
-        $ water -= 1
 
     elif cipher_decoded == True and has_screwdriver == False:
-
+        call pass_time(1, "drawer", "unsuspicious")
         scene drawer_02_open_with_screwdriver
-        if has_screwdriver == False:
-            y "Nice, it really was hidden on top of this drawer."
-            y "Who ever you are, I will make sure that your efforts are not in vain. I will escape here successfully."
+        y "Nice, it really was hidden on top of this drawer."
+        y "Who ever you are, I will make sure that your efforts are not in vain. I will escape here successfully."
         "You now have access to a screwdriver."
         $ has_screwdriver = True
-        $ free_time_remaining -= 1
-        $ food -= 1
-        $ water -= 1
 
     elif cipher_decoded == True and has_screwdriver == True:
-
         "No point in checking this again. I already have the screwdriver."
 
     jump free_time
 
         
 label check_drawer_03:
-
+    call pass_time(1, "drawer", "unsuspicious")
     scene drawer_03_open
     "Void"
-    $ free_time_remaining -= 1
-    $ food -= 1
-    $ water -= 1
     jump free_time
 
            
 label check_drawer_04:
-
+    call pass_time(1, "drawer", "unsuspicious")
     scene drawer_04_open
     "Desolate."
-    $ free_time_remaining -= 1
-    $ food -= 1
-    $ water -= 1
     jump free_time
 
 
@@ -1058,30 +982,24 @@ label check_painting:
     "What to do?"
     menu:
         "Observe (Spend 1 Minute)":
+            call pass_time(1, "painting", "unsuspicious")
             scene room_look_painting
             y "This painting is not very ominous at all..."
             y "Is this going to be my fate if I don't follow all these rules they set up?"
             y "I have played so many games that there should be something in the back of this painting."
-            $ free_time_remaining -= 1
-            $ food -= 1
-            $ water -= 1
             jump free_time
 
         "Search through the painting (Spend 5 Minute)" if free_time_remaining >= 5 and cipher_found == False:
-
+            call pass_time(5, "painting", "unsuspicious")
             scene black_screen with fade
             "You spent 5 minutes searching through the painting..."
             y "Ughh this painting is huge and heavy."
             y "Boom! Something is written in the back of this painting."
             y "It seems like a cipher. I should decode this in the PC later..."
             $ cipher_found = True
-            $ free_time_remaining -= 5
-            $ food -= 5
-            $ water -= 5
             jump free_time
 
         "I changed my mind":
-
             jump free_time
 
 
@@ -1092,92 +1010,39 @@ label check_vent:
     menu:
 
         "Observe (Spend 1 Minute)":
-
+            call pass_time(1, "vent", "unsuspicious")
             scene room_look_vent
-
             y "This vent, it is so obvious that this will be where I can escape."
-
             y "Is this a joke? No way they did not know that their prisoner can escape through this."
-
             y "Is this a trap? or the dev is just so unimaginative?"
-
             y "Like leaving a vent this big like this?"
-
             y "Oh well, lets try to see if I can open this."
-
-            $ free_time_remaining -= 1
-            $ food -= 1
-            $ water -= 1
             jump free_time
 
         "Try to open the vent (Spend 5 Minute)" if has_screwdriver == False:
-
+            call pass_time(5, "opening_vent", "suspicious")
             scene black_screen with fade
-
             "You spent 5 minutes trying to open the vent..."
-
-            if free_time_remaining < 5:
-
-                hide screen status_hud
-
-                "You run out of free time and have been caught trying to escape."
-
-                y "Fuck!"
-
-                "You were then sentenced to die. Game Over."
-
-                jump game_over_02
-
             y "Ughh the vent is screwed shut!"
-
             y "Can't remove it via force either as the soldier might notice that I am planning to escape."
-
-            $ free_time_remaining -= 5
-            $ food -= 5
-            $ water -= 5
             jump free_time
 
         "Try to open the vent with screwdriver (Spend 5 Minute)" if has_screwdriver == True:
-
+            call pass_time(5, "opening_vent", "suspicious")
             scene black_screen with fade
-
             "You spent 5 minutes trying to open the vent with the screwdriver..."
 
-            if free_time_remaining < 5:
-
-                hide screen status_hud
-
-                "You run out of free time and have been caught trying to escape."
-
-                y "Fuck!"
-
-                "You were then sentenced to die. Game Over."
-
-                jump game_over_02
-
             scene room_without_vent_01
-
-            $ free_time_remaining -= 5
-            $ food -= 5
-            $ water -= 5
-
             y "Done."
-
             scene room_without_vent_01
-
             "Explore the vents? (Make sure you have enough free time for this!)"
 
             menu:
 
                 "Yes" if free_time_remaining >= 3:
-
+                    call pass_time(3, "into_vent", "suspicious")
                     scene room_without_vent_02
-
                     "Spent 3 TME getting in the vents."
-
-                    $ free_time_remaining -= 3
-                    $ food -= 3
-                    $ water -= 3
 
                     # THE MAZE SETUP
                     # 1. Define the secret correct path (You can change this to whatever you want!)
@@ -1204,34 +1069,17 @@ label check_vent:
 label vent_fix:
 
     scene room_without_vent_01
-
-    if free_time_remaining < 5:
-
-        hide screen status_hud
-
-        "Oh shit, I don't have time to fix the vent before the soldier comes in. I am dead!"
-
-        scene black_screen with fade
-
-        "Game Over. You were caught trying to escape."
-
-        jump game_over_02
-
     "What to do?"
-
     menu:
 
         "Put the vent screen back. (Spend 5 minutes)":
+            call pass_time(5, "closing_vent", "suspicious")
             scene black_screen with fade
             "Fixing the vent..."
             scene room_overview
-            $ free_time_remaining -= 5
-            $ food -= 5
-            $ water -= 5
             jump free_time
 
         "Don't put the vent screen back.":
-
             y "What are you doing? I do not want to be caught with this vent open."
             jump vent_fix
 
@@ -1239,20 +1087,6 @@ label vent_fix:
 label vent_maze_loop:
     
     scene vent_3ways
-    
-    # 1. Safety Check: Do they have enough time to keep crawling?
-    if free_time_remaining <= 0:
-
-        hide screen status_hud
-
-        y "Shit I don't have any time remaining left, I am dead."
-
-        scene black_screen with fade
-
-        "Game over. You got caught trying to escape."
-
-        jump game_over_02
-
     "I am at an intersection. Which way should I go?"
 
     # 2. The Choice Menu
@@ -1265,70 +1099,39 @@ label vent_maze_loop:
             $ chosen_direction = "Right"
         "Get back to the start of vents" if vent_progress > 0:
             scene black_screen
-            "You turned around and spent [vent_progress * 5] minutes going back to the start of the vents."
-            $ free_time_remaining -= vent_progress * 5
-            $ food -= vent_progress * 5
-            $ water -= vent_progress * 5
-
-            if free_time_remaining <= 0:
-                hide screen status_hud
-                scene black_screen
-                "By the time you are in the start of vents, your free time remaining is gone and the soldier is alerted of your escape plan."
-                "Game Over. You got caught trying to escape."
-                jump game_over_02
-
-            if food <= 0 and water <= 0:
-                hide screen status_hud
+            $ crawling_penalty = vent_progress * 5
+            if free_time_remaining >= crawling_penalty:
+                window hide
                 scene black_screen with fade
-                "Game Over. You died on the vents due to hunger and thirst."
-                jump game_over_02
-            
-            elif food <= 0:
-                hide screen status_hud
+                centered "You turned around and spent [crawling_penalty] minutes going back to the start of the vents."
+                window auto
+            elif free_time_remaining < crawling_penalty:
+                window hide
                 scene black_screen with fade
-                "Game Over. You died on the vents due to hunger."
-                jump game_over_02
-
-            elif water <= 0:
-                hide screen status_hud
-                scene black_screen with fade
-                "Game Over. You died on the vents due to thirst."
-                jump game_over_02
+                centered "You tried to go back to the start of the vents, but it takes [crawling_penalty] minutes to get there."
+                centered "You did not make it in time."
+                window auto
+            call pass_time(crawling_penalty, "inside_vent", "suspicious")
 
             $ vent_progress = 0
             $ wrong_turn_made = False
             jump vent_maze_loop
 
         "Get back in the office (spend 3 minutes climbing down the office)" if vent_progress == 0:
-
-            "You spent 3 minutes getting out of the vents and into the office."
-            $ free_time_remaining -= 3
-            $ food -= 3
-            $ water -= 3
+            call pass_time(3, "unto_vent", "suspicious")
+            window hide
+            scene black_screen with fade
+            centered "You spent 3 minutes getting out of the vents and into the office."
+            window auto
             scene room_without_vent_01
-            if free_time_remaining <= 0:
-                hide screen status_hud
-                scene black_screen
-                "By the time you are in the office, your free time remaining is gone and the soldier is alerted of your escape plan."
-                "Game Over. You got caught trying to escape."
-                jump game_over_02
-            else:
-                jump vent_fix
+            jump vent_fix
 
-    # 3. Apply the movement penalty ONCE for all choices! (Saves so much typing)
+    # Apply the movement penalty ONCE for all choices! (Saves so much typing)
     scene black_screen
     "Crawling in that direction..."
-    $ free_time_remaining -= 5
-    $ food -= 5
-    $ water -= 5
+    call pass_time(5, "inside_vent", "suspicious")
 
-    # 4. Check if they starved to death while crawling!
-    if food <= 0 or water <= 0:
-        hide screen status_hud
-        "You collapse in the dusty ventilation shaft. Your body couldn't handle the physical toll..."
-        jump game_over_02
-
-    # 5. The Logic Check! 
+    # The Logic Check! 
     # Did their choice match the correct path for THIS specific step?
     if chosen_direction != correct_vent_path[vent_progress]:
         # They guessed wrong! Silently flip the flag, but don't tell them yet!
@@ -1348,36 +1151,19 @@ label vent_maze_loop:
             # They made a mistake! Hit them with the dead end.
             scene vent_grate
             y "Damn... it's a dead end. I have to crawl all the way back to the start intersection."
-
+            $ crawling_penalty = vent_progress * 5
             scene black_screen
-            "You spend 15 minutes going back to the start of the vents."
-            $ free_time_remaining -= 15
-            $ food -= 15
-            $ water -= 15
-
-            if free_time_remaining <= 0:
-                hide screen status_hud
-                "Fuck! I don't have enough time to get back to the office. I am dead!"
-                "Game Over. You have been discovered trying to escape."
-                jump game_over_02
-
-            if food <= 0 and water <= 0:
-                hide screen status_hud
+            if free_time_remaining >= crawling_penalty:
+                window hide
                 scene black_screen with fade
-                "Game Over. You died on the vents due to hunger and thirst."
-                jump game_over_02
-            
-            if food <= 0:
-                hide screen status_hud
+                centered "You turned around and spent [crawling_penalty] minutes going back to the start of the vents."
+                window auto
+            elif free_time_remaining < crawling_penalty:
+                window hide
                 scene black_screen with fade
-                "Game Over. You died on the vents due to hunger."
-                jump game_over_02
-
-            if water <= 0:
-                hide screen status_hud
-                scene black_screen with fade
-                "Game Over. You died on the vents due to thirst."
-                jump game_over_02
+                centered "You tried to go back to the start of the vents, but it takes [crawling_penalty] minutes to get there."
+                centered "You did not make it in time."
+            call pass_time(crawling_penalty, "inside_vent", "suspicious")
 
             # Reset the maze so they can try again
             $ vent_progress = 0
@@ -1440,29 +1226,8 @@ label vent_exit_found:
     return
 
 
-label game_over_01:
-
-    hide screen status_hud
-
-    scene shoot_01
-
-    s "You have reached TME below 0. You have failed spectacularly. Maybe you were not that good at all in the first place."
-
-    y "Please give me one more chance."
-
-    s "Contract says going below zero means failure. And failure means death. It is unfortunate that we wasted our resources on a failure like you."
-
-    s "Goodbye."
-
-    scene black_screen with fade
-
-    return
-
-label game_over_02:
-
-    hide screen status_hud
-
-    return
+label game_over:
+    $ MainMenu(confirm=False)()
 
 
 screen room_exploration_ui():

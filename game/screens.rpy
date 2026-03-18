@@ -99,6 +99,7 @@ screen say(who, what):
 
     window:
         id "window"
+        add Solid("#4a5c6d") xsize 1920 ysize 2 ypos 4
 
         if who is not None:
 

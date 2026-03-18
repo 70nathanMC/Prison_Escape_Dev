@@ -99,6 +99,11 @@ define gui.game_menu_background = "gui/game_menu.png"
 ## The height of the textbox containing dialogue.
 define gui.textbox_height = 278
 
+## OVERRIDES: Flat Terminal Background and Crisp Text Outlines
+define gui.textbox_background = Solid("#050505e6") # Almost black, slightly transparent
+define gui.text_outlines = [ (1, "#000000", 0, 0) ] # 1-pixel sharp black outline
+define gui.name_text_outlines = [ (1, "#000000", 0, 0) ]
+
 ## The placement of the textbox vertically on the screen. 0.0 is the top, 0.5 is
 ## center, and 1.0 is the bottom.
 define gui.textbox_yalign = 1.0
@@ -106,7 +111,7 @@ define gui.textbox_yalign = 1.0
 
 ## The placement of the speaking character's name, relative to the textbox.
 ## These can be a whole number of pixels from the left or top, or 0.5 to center.
-define gui.name_xpos = 360
+define gui.name_xpos = 150 # Changed from 360 to move it left
 define gui.name_ypos = 0
 
 ## The horizontal alignment of the character's name. This can be 0.0 for left-
@@ -117,6 +122,8 @@ define gui.name_xalign = 0.0
 ## None to automatically size it.
 define gui.namebox_width = None
 define gui.namebox_height = None
+define gui.namebox_borders = Borders(15, 5, 15, 5) # Added some padding
+define gui.namebox_background = Solid("#111111")
 
 ## The borders of the box containing the character's name, in left, top, right,
 ## bottom order.
@@ -130,11 +137,11 @@ define gui.namebox_tile = False
 ## The placement of dialogue relative to the textbox. These can be a whole
 ## number of pixels relative to the left or top side of the textbox, or 0.5 to
 ## center.
-define gui.dialogue_xpos = 402
+define gui.dialogue_xpos = 150 # Changed from 402 to align with the name
 define gui.dialogue_ypos = 75
 
 ## The maximum width of dialogue text, in pixels.
-define gui.dialogue_width = 1116
+define gui.dialogue_width = 1620 # Increased from 1116 so text stretches across the screen
 
 ## The horizontal alignment of the dialogue text. This can be 0.0 for left-
 ## aligned, 0.5 for centered, and 1.0 for right-aligned.

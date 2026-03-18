@@ -56,20 +56,20 @@ define gui.interface_text_color = '#ffffff'
 
 ## Fonts and Font Sizes ########################################################
 
-## The font used for in-game text.
-define gui.text_font = "DejaVuSans.ttf"
+## The font used for in-game dialogue text.
+define gui.text_font = "Exo2-Regular.ttf"
 
 ## The font used for character names.
-define gui.name_text_font = "DejaVuSans.ttf"
+define gui.name_text_font = "Orbitron-Bold.ttf"
 
-## The font used for out-of-game text.
-define gui.interface_text_font = "DejaVuSans.ttf"
+## The font used for out-of-game text (like your settings menu and save slots).
+define gui.interface_text_font = "Exo2-Regular.ttf"
 
 ## The size of normal dialogue text.
 define gui.text_size = 33
 
 ## The size of character names.
-define gui.name_text_size = 45
+define gui.name_text_size = 38
 
 ## The size of text in the game's user interface.
 define gui.interface_text_size = 33
@@ -96,55 +96,62 @@ define gui.game_menu_background = "gui/game_menu.png"
 ## These variables control how dialogue is displayed on the screen one line at a
 ## time.
 
-## The height of the textbox containing dialogue.
+## The width and height of the textbox containing dialogue.
+define gui.textbox_width = 1700
 define gui.textbox_height = 278
 
-## OVERRIDES: Flat Terminal Background and Crisp Text Outlines
-define gui.textbox_background = Solid("#050505e6") # Almost black, slightly transparent
-define gui.text_outlines = [ (1, "#000000", 0, 0) ] # 1-pixel sharp black outline
-define gui.name_text_outlines = [ (1, "#000000", 0, 0) ]
+## The placement of the textbox vertically on the screen. 
+## 0.5 centers it horizontally. 0.95 floats it slightly above the bottom.
+define gui.textbox_xalign = 0.5
+define gui.textbox_yalign = 0.95
 
-## The placement of the textbox vertically on the screen. 0.0 is the top, 0.5 is
-## center, and 1.0 is the bottom.
-define gui.textbox_yalign = 1.0
+## The Main Textbox Background (Sci-Fi Terminal with Composite Layers)
+define gui.textbox_background = Composite(
+    (1700, 278),
+    # Layer 1: The Base. A very dark, pitch-green "screen" background
+    (0, 0), Solid("#020802f2"),
+    
+    # Layer 2: A sharp 1-pixel Neon Green border around the whole box
+    (0, 0), Frame(Solid("#00000000"), outline=(1, "#32cd32", 0)),
+    
+    # Layer 3: A thicker 4-pixel header bar across the very top
+    (0, 0), Transform(Solid("#32cd32"), xsize=1700, ysize=4),
+    
+    # Layer 4: A faded, decorative Hacker watermark in the top right corner
+    (1480, 15), Text("SYS_OVR//: ACTIVE", size=14, color="#32cd32", kerning=2, alpha=0.4),
+    
+    # Layer 5: A tiny glowing data block in the bottom right corner
+    (1680, 258), Transform(Solid("#32cd32"), xsize=10, ysize=10, alpha=0.6)
+)
 
+## The placement of the speaking character's name inside the terminal.
+define gui.name_xpos = 80    # Aligns perfectly with the dialogue text below it
+define gui.name_ypos = 30    # Pushes the name DOWN inside the main textbox
+define gui.name_xalign = 0.0 
+define gui.name_yalign = 0.0
 
-## The placement of the speaking character's name, relative to the textbox.
-## These can be a whole number of pixels from the left or top, or 0.5 to center.
-define gui.name_xpos = 150 # Changed from 360 to move it left
-define gui.name_ypos = 0
-
-## The horizontal alignment of the character's name. This can be 0.0 for left-
-## aligned, 0.5 for centered, and 1.0 for right-aligned.
-define gui.name_xalign = 0.0
-
-## The width, height, and borders of the box containing the character's name, or
-## None to automatically size it.
+## Remove the separate namebox tab completely.
 define gui.namebox_width = None
 define gui.namebox_height = None
-define gui.namebox_borders = Borders(15, 5, 15, 5) # Added some padding
-define gui.namebox_background = Solid("#111111")
-
-## The borders of the box containing the character's name, in left, top, right,
-## bottom order.
-define gui.namebox_borders = Borders(5, 5, 5, 5)
-
-## If True, the background of the namebox will be tiled, if False, the
-## background of the namebox will be scaled.
+define gui.namebox_borders = Borders(0, 0, 0, 0)
 define gui.namebox_tile = False
 
+## Set the background to None so the name just sits on the main terminal background.
+define gui.namebox_background = None
 
-## The placement of dialogue relative to the textbox. These can be a whole
-## number of pixels relative to the left or top side of the textbox, or 0.5 to
-## center.
-define gui.dialogue_xpos = 150 # Changed from 402 to align with the name
+## Reposition the Dialogue Text slightly lower so it doesn't overlap the name.
+define gui.dialogue_xpos = 80
+define gui.dialogue_ypos = 115
+define gui.dialogue_width = 1540
+define gui.dialogue_text_xalign = 0.0
+
+## The placement of dialogue relative to the textbox. 
+define gui.dialogue_xpos = 80
 define gui.dialogue_ypos = 75
 
 ## The maximum width of dialogue text, in pixels.
-define gui.dialogue_width = 1620 # Increased from 1116 so text stretches across the screen
-
-## The horizontal alignment of the dialogue text. This can be 0.0 for left-
-## aligned, 0.5 for centered, and 1.0 for right-aligned.
+## (1700 width - 80 left padding - 80 right padding = 1540 perfect width)
+define gui.dialogue_width = 1540
 define gui.dialogue_text_xalign = 0.0
 
 
@@ -211,17 +218,38 @@ define gui.quick_button_text_selected_color = gui.accent_color
 ##
 ## Choice buttons are used in the in-game menus.
 
-define gui.choice_button_width = 1185
-define gui.choice_button_height = None
+define gui.choice_button_width = 600
+define gui.choice_button_height = 65 
 define gui.choice_button_tile = False
-define gui.choice_button_borders = Borders(150, 8, 150, 8)
+define gui.choice_button_borders = Borders(20, 15, 20, 15)
+
 define gui.choice_button_text_font = gui.text_font
-define gui.choice_button_text_size = gui.text_size
-define gui.choice_button_text_xalign = 0.5
-define gui.choice_button_text_idle_color = '#888888'
-define gui.choice_button_text_hover_color = "#ffffff"
+define gui.choice_button_text_size = 30
+define gui.choice_button_text_xalign = 0.0
+
+define gui.choice_button_text_idle_color = '#aaaaaa'
+define gui.choice_button_text_hover_color = "#32cd32"
 define gui.choice_button_text_insensitive_color = '#8888887f'
 
+## IDLE: Pitch black with a subtle 1-pixel dark grey border
+define gui.choice_button_background = Composite(
+    (600, 65),
+    (0, 0), Solid("#020802f2"),
+    (0, 0), Transform(Solid("#333333"), xsize=600, ysize=1), # Top
+    (0, 64), Transform(Solid("#333333"), xsize=600, ysize=1), # Bottom
+    (0, 0), Transform(Solid("#333333"), xsize=1, ysize=65), # Left
+    (599, 0), Transform(Solid("#333333"), xsize=1, ysize=65) # Right
+)
+
+## HOVER: Pitch black, border turns Neon Green and thickens to 2 pixels!
+define gui.choice_button_hover_background = Composite(
+    (600, 65),
+    (0, 0), Solid("#020802f2"),
+    (0, 0), Transform(Solid("#32cd32"), xsize=600, ysize=2), # Top
+    (0, 63), Transform(Solid("#32cd32"), xsize=600, ysize=2), # Bottom
+    (0, 0), Transform(Solid("#32cd32"), xsize=2, ysize=65), # Left
+    (598, 0), Transform(Solid("#32cd32"), xsize=2, ysize=65) # Right
+)
 
 ## File Slot Buttons ###########################################################
 ##

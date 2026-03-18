@@ -96,10 +96,10 @@ style frame:
 ## https://www.renpy.org/doc/html/screen_special.html#say
 
 screen say(who, what):
+    zorder 108
 
     window:
         id "window"
-        add Solid("#4a5c6d") xsize 1920 ysize 2 ypos 4
 
         if who is not None:
 
@@ -132,20 +132,21 @@ style namebox_label is say_label
 
 style window:
     xalign 0.5
-    xfill True
+    xfill False
+    xsize gui.textbox_width
     yalign gui.textbox_yalign
     ysize gui.textbox_height
 
-    background Image("gui/textbox.png", xalign=0.5, yalign=1.0)
+    background gui.textbox_background
 
 style namebox:
-    xpos gui.name_xpos
+    xpos 80
     xanchor gui.name_xalign
     xsize gui.namebox_width
-    ypos gui.name_ypos
+    ypos 30
     ysize gui.namebox_height
 
-    background Frame("gui/namebox.png", gui.namebox_borders, tile=gui.namebox_tile, xalign=gui.name_xalign)
+    background gui.namebox_background 
     padding gui.namebox_borders.padding
 
 style say_label:
@@ -156,9 +157,9 @@ style say_label:
 style say_dialogue:
     properties gui.text_properties("dialogue")
 
-    xpos gui.dialogue_xpos
+    xpos 80
     xsize gui.dialogue_width
-    ypos gui.dialogue_ypos
+    ypos 85
 
     adjust_spacing False
 
@@ -210,7 +211,32 @@ screen choice(items):
 
     vbox:
         for i in items:
-            textbutton i.caption action i.action
+            $ cost = i.kwargs.get("cost", None) if i.kwargs else None
+
+            # 1. We change 'textbutton' to 'button'
+            button:
+                action i.action
+                style "choice_button" # Uses our Composite backgrounds
+                
+                hbox:
+                    xfill True
+                    yalign 0.5
+                    
+                    # 2. Since it's a 'button', we add the text manually
+                    text "> " + i.caption style "choice_button_text" yalign 0.5
+                    
+                    # 3. The Cost Indicator (Invisible until hovered)
+                    if cost is not None:
+                        text ( "-[cost] MIN" if cost > 0 else "FREE" ):
+                            yalign 0.5
+                            xalign 1.0
+                            font gui.text_font
+                            size 24
+                            bold True
+                            # Default color is invisible (transparent)
+                            idle_color "#00000000" 
+                            # Hover color depends on if it's FREE or a cost
+                            hover_color ("#32cd32" if cost == 0 else "#ff8c00")
 
 
 style choice_vbox is vbox
@@ -226,9 +252,20 @@ style choice_vbox:
 
 style choice_button is default:
     properties gui.button_properties("choice_button")
+    # This ensures it uses the Composite backgrounds we built in gui.rpy
+    idle_background gui.choice_button_background
+    hover_background gui.choice_button_hover_background
+    
+    # We remove fixed padding so our hbox can handle alignment
+    padding (25, 12, 25, 12) 
 
 style choice_button_text is default:
     properties gui.text_properties("choice_button")
+    # We use our new font!
+    font gui.text_font 
+    size 28
+    idle_color "#aaaaaa"
+    hover_color "#32cd32"
 
 
 ## Quick Menu screen ###########################################################
@@ -270,14 +307,27 @@ style quick_button_text is button_text
 
 style quick_menu:
     xalign 0.5
-    yalign 1.0
+    yalign 0.999
+    spacing 15 # Adds clean, even spacing between the system commands
 
 style quick_button:
-    properties gui.button_properties("quick_button")
+    padding (12, 4)
+    # IDLE: Completely transparent background
+    idle_background Solid("#00000000") 
+    # HOVER: A dark, glowing terminal-green highlight block appears behind the text!
+    hover_background Solid("#052205") 
 
 style quick_button_text:
-    properties gui.text_properties("quick_button")
-
+    size 21 
+    
+    # IDLE: Changed to a crisp, light grey for high visibility
+    idle_color "#1e7b1e" 
+    
+    # HOVER: Text lights up bright Neon Green
+    hover_color "#32cd32" 
+    
+    # SELECTED: Keeps the green color if that specific menu is active
+    selected_color "#32cd32"
 
 ################################################################################
 ## Main and Game Menu Screens
@@ -1620,3 +1670,12 @@ style slider_vbox:
 style slider_slider:
     variant "small"
     xsize 900
+
+
+style choice_cost_text:
+    size 24
+    bold True
+    # WE MAKE IT INVISIBLE BY DEFAULT
+    color "#00000000" 
+    # WE MAKE IT BRIGHT WHEN THE BUTTON IS HOVERED
+    hover_color "#ff8c00"

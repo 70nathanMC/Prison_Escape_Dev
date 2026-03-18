@@ -1,17 +1,27 @@
 ﻿# The script of the game goes in this file.
 
-# Create the blinking animation
+# The Hacking Arrow Prefix (Colors the arrow Neon Green, then leaves a space)
+define hacker_arrow = "{color=#32cd32}> {/color}"
+
+# OVERRIDE THE NARRATOR: Now all system text gets the arrow!
+define narrator = Character(None, what_prefix=hacker_arrow)
+
+# YOUR CHARACTERS (I slightly brightened their colors so they pop on pitch black!)
+define y = Character("You", color="#4da6ff", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
+define s = Character("Soldier", color="#32cd32", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
+define a = Character("AI", color="#ff4d4d", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
+define b = Character("SYSTEM BOT", color="#ffd700", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
+
+# THE INNER MONOLOGUE
+define think = Character("You", color="#4da6ff", what_italic=True, what_color="#8ea4b8", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
+
+# THE BLINKING CURSOR ANIMATION
 image blinking_cursor:
-    Text(" █", color="#32cd32") # A neon green terminal block
+    Text(" █", color="#32cd32")
     alpha 1.0
     linear 0.5 alpha 0.0
     linear 0.5 alpha 1.0
     repeat
-
-define y = Character("You", color="051094", ctc="blinking_cursor", ctc_position="nestled")
-define s = Character("Soldier", color="08A045", ctc="blinking_cursor", ctc_position="nestled")
-define a = Character("AI", color="DC143C", ctc="blinking_cursor", ctc_position="nestled")
-define think = Character("You", color="051094", what_italic=True, what_color="#8ea4b8", ctc="blinking_cursor", ctc_position="nestled")
 
 define config.menu_include_disabled = False
 default dev_powers = True
@@ -248,10 +258,10 @@ label start:
 
     menu tutorial:
 
-        "I am new, I want to do the tutorial.":
+        "I am new, do tutorial.":
             jump tutorial_scene
         
-        "I already know how to play the game. Skip Tutorial.":
+        "Skip Tutorial.":
             jump prologue
 
 
@@ -260,13 +270,13 @@ label tutorial_scene:
 
     scene pc_sit_01 with fade
     
-    "SYSTEM BOT: INITIALIZING TUTORIAL PROTOCOL..."
-    "SYSTEM BOT: Welcome, Test Subject. I will be your guide to surviving your new employment."
+    b "INITIALIZING TUTORIAL PROTOCOL..."
+    b "Welcome, Test Subject. I will be your guide to surviving your new employment."
 
-    scene black_screen with fade
+    scene room_overview with fade
     
-    "SYSTEM BOT: First, basic interface controls. You can access the system menu to Save, Load, or alter settings by pressing the 'Esc' key or Right-Clicking your mouse."
-    "SYSTEM BOT: You can also fast-forward through text you have already read by pressing 'Ctrl' or the 'Skip' button. Use these functions wisely."
+    b "First, basic interface controls. You can access the system menu to Save, Load, or alter settings by pressing the 'Esc' key or Right-Clicking your mouse."
+    b "You can also fast-forward through text you have already read by pressing 'Ctrl' or the 'Skip' button. Use these functions wisely."
     
     # --- SETUP TUTORIAL SAMPLE STATS ---
     $ time_currency = 100
@@ -279,22 +289,22 @@ label tutorial_scene:
     # Highlight the entire HUD box
     show screen highlight_mask(15, 15, 330, 265) with dissolve
     
-    "SYSTEM BOT: Observe the Status HUD on your screen. This is your lifeline."
+    b "Observe the Status HUD on your screen. This is your lifeline."
 
     # Move highlight to the TME stat
     show screen highlight_mask(35, 83, 290, 35) with dissolve
-    "SYSTEM BOT: 'TME' is your Time Currency. You are allocated exactly 100 TME at the start of every daily work shift."
+    b "'TME' is your Time Currency. You are allocated exactly 100 TME at the start of every daily work shift."
 
     # Move highlight to the Food and Water stats
     show screen highlight_mask(35, 123, 290, 95) with dissolve
-    "SYSTEM BOT: Your Biological Stats, Food and Water, are currently at safe levels. If either reaches 0, you will die."
+    b "Your Biological Stats, Food and Water, are currently at safe levels. If either reaches 0, you will die."
 
     # Hide the mask so they can see the PC for the minigame
     hide screen highlight_mask with dissolve
     scene pc_sit_01 with fade
 
-    "SYSTEM BOT: Your daily task is a hacking minigame where you must decrypt a 3-digit code."
-    "SYSTEM BOT: Let's run a simulation. Enter a 3-digit number from 100 - 999 to see how the system responds."
+    b "Your daily task is a hacking minigame where you must decrypt a 3-digit code."
+    b "Let's run a simulation. Enter a 3-digit number from 100 - 999 to see how the system responds."
 
     # --- RIGGED MINIGAME LOOP START ---
     $ tutorial_guesses = 0
@@ -310,64 +320,64 @@ label tutorial_hack_loop:
         $ player_guess = int(user_input)
 
     if player_guess < 100 or player_guess > 999:
-        "ERROR. PLEASE INPUT A 3 DIGIT NUMBER ONLY."
+        b "ERROR. PLEASE INPUT A 3 DIGIT NUMBER ONLY."
         jump tutorial_hack_loop
 
     # First guess: Force a "Too High" or "Too Low"
     if tutorial_guesses == 0:
         if player_guess >= 500:
-            "SYSTEM: ERROR. VALUE TOO HIGH."
+            b "ERROR. VALUE TOO HIGH."
         else:
-            "SYSTEM: ERROR. VALUE TOO LOW."
+            b "ERROR. VALUE TOO LOW."
             
         # Deduct stats live!
         $ time_currency -= 1
         
         # Highlight TME, Food, and Water together to show the deduction
         show screen highlight_mask(35, 80, 290, 140) with dissolve
-        "SYSTEM BOT: Notice your Status HUD. Your TME dropped to [time_currency]."
-        "SYSTEM BOT: Every incorrect guess deducts 1 TME."
+        b "Notice your Status HUD. Your TME dropped to [time_currency]."
+        b "Every incorrect guess deducts 1 TME."
         hide screen highlight_mask with dissolve
         
-        "SYSTEM BOT: The system also informed you if the answer was higher or lower. Use this to adjust your next guess."
+        b "The system also informed you if the answer was higher or lower. Use this to adjust your next guess."
         $ tutorial_guesses += 1
         jump tutorial_hack_loop
 
     # Second guess: Force a "Proximity Alert" regardless of what they typed!
     elif tutorial_guesses == 1:
-        "SYSTEM: PROXIMITY ALERT. TRACE DETECTED. VALUE IS EXTREMELY CLOSE."
+        b "PROXIMITY ALERT. TRACE DETECTED. VALUE IS EXTREMELY CLOSE."
         
         # Deduct stats live!
         $ time_currency -= 1
 
         show screen highlight_mask(35, 83, 290, 35) with dissolve
-        "SYSTEM BOT: Another incorrect guess means another TME point loss."
+        b "Another incorrect guess means another TME point loss."
         hide screen highlight_mask with dissolve
     # --- RIGGED MINIGAME LOOP END ---
 
-    "SYSTEM BOT: However, notice the system output. The answer is now in 'close proximity' to your guess."
-    "SYSTEM BOT: Close proximity means your guess is within 10 digits of the actual answer."
-    "SYSTEM BOT: For example, if your guess is 525, the answer could be anywhere from 515 to 524 (within 10 digits lower) or 526 to 535 (within digits higher)."
-    "SYSTEM BOT: Once you are this close, the system will NO LONGER tell you if the exact answer is higher or lower. You must narrow it down yourself."
+    b "However, notice the system output. The answer is now in 'close proximity' to your guess."
+    b "Close proximity means your guess is within 10 digits of the actual answer."
+    b "For example, if your guess is 525, the answer could be anywhere from 515 to 524 (within 10 digits lower) or 526 to 535 (within digits higher)."
+    b "Once you are this close, the system will NO LONGER tell you if the exact answer is higher or lower. You must narrow it down yourself."
 
-    scene black_screen with fade
+    scene room_overview with fade
     
-    "SYSTEM BOT: Doing anything makes you hungry and thirsty. So always keep in mind your food and water stats and not let it go down to 0."
-    "SYSTEM BOT: In addition to the penalties from incorrect guesses, merely completing your daily shift will automatically consume an additional 40 Food and 60 Water."
-    "SYSTEM BOT: You must spend your retained TME after your shift to purchase Food and Water to survive."
+    b "Doing anything makes you hungry and thirsty. So always keep in mind your food and water stats and not let it go down to 0."
+    b "In addition to the penalties from incorrect guesses, merely completing your daily shift will automatically consume an additional 40 Food and 60 Water."
+    b "You must spend your retained TME after your shift to purchase Food and Water to survive."
 
     # Highlight Free Time
     show screen highlight_mask(35, 228, 290, 35) with dissolve
     
-    "SYSTEM BOT: Any TME you do not spend on survival resources can be converted into Free Time at a 1-to-1 ratio (1 TME = 1 Minute)."
-    "SYSTEM BOT: During Free Time, you can explore your room. Move your cursor around the screen; interactable objects will glow when hovered over."
-    "SYSTEM BOT: Be warned: interacting with objects consumes your Free Time, and any physical exertion will slowly drain your Food and Water."
+    b "Any TME you do not spend on survival resources can be converted into Free Time at a 1-to-1 ratio (1 TME = 1 Minute)."
+    b "During Free Time, you can explore your room. Move your cursor around the screen; interactable objects will glow when hovered over."
+    b  "Be warned: interacting with objects consumes your Free Time, and any physical exertion will slowly drain your Food and Water."
 
     # Unhighlight everything
     hide screen highlight_mask with dissolve
     
-    "SYSTEM BOT: Resource management is the key to extending your lifespan here. Play smart, guess efficiently, and manage your time."
-    "SYSTEM BOT: TUTORIAL COMPLETE."
+    b "Resource management is the key to extending your lifespan here. Play smart, guess efficiently, and manage your time."
+    b "TUTORIAL COMPLETE."
     
     # --- CLEANUP --- 
     # Reset stats back to true starting values so the prologue dialogue makes sense
@@ -379,7 +389,7 @@ label tutorial_hack_loop:
     hide screen status_hud with dissolve
     scene opening_convo_08 with fade
 
-    s "Did you understand everything?"
+    b "Did you understand everything?"
 
     menu:
 
@@ -472,7 +482,7 @@ label prologue:
 
     scene cell_thinking_03
 
-    think 'Like of course, they can easily just say whatever they want me to believe, about what they say I allegedly "did" before losing my memories. As ofcourse, I have no way to verify any of it.{/i}'
+    think 'Like of course, they can easily just say whatever they want me to believe, about what they say I allegedly "did" before losing my memories. As ofcourse, I have no way to verify any of it.'
 
     scene cell_thinking_04
 
@@ -491,7 +501,7 @@ label prologue:
 
     scene cell_thinking_04 with fade
 
-    think "Man, this cell is very secure, it is very much inescapable and nothing here that can aid me with escaping. My best bet is to get high free time to look around the office.{/i}"
+    think "Man, this cell is very secure, it is very much inescapable and nothing here that can aid me with escaping. My best bet is to get high free time to look around the office."
 
     think "Also to check if I can find anything in the PC, Let's see if I can break it and find any useful information."
 
@@ -507,7 +517,7 @@ label prologue:
 
     scene cell_thinking_06
 
-    think "Which means they really value the prisoner's ability to do the work well and fast, as a prisoner that is very exhausted would likely be slower and be prone to mistakes.{/i}"
+    think "Which means they really value the prisoner's ability to do the work well and fast, as a prisoner that is very exhausted would likely be slower and be prone to mistakes."
 
     think "Heh..."
 
@@ -517,7 +527,7 @@ label prologue:
 
     think "Do they really expect that all I would do in the PC room during free time is just relax, play games, watch entertainment, and read novels?"
 
-    think "Although I am sure they have systems that can restrict me access to anything they don't want me to do in the PC, but as they say no cyber security system is perfect.{/i}"
+    think "Although I am sure they have systems that can restrict me access to anything they don't want me to do in the PC, but as they say no cyber security system is perfect."
 
     think "People always discover new ways to be able to bypass them all the time."
 
@@ -685,39 +695,6 @@ label buy_item(item_type, item_size):
     return
 
 
-label before_work:
-
-    show screen status_hud
-    scene pc_sit_01 with fade
-    "What do you want to do?"
-
-    menu:
-
-        "Skip Shift." if dev_powers:
-            $ food = min(food + 100, max_food_and_water)
-            $ water = min(water + 100, max_food_and_water)
-            $ time_currency += 100
-            jump after_work_01
-
-        "Start your shift.":
-            hide screen status_hud with fade
-            window hide
-            scene black_screen with fade
-            centered "Shift Starting..."
-            window auto
-            jump work_hours
-
-        "Spend TME.":
-            call choose_spend_type(False)
-            $ spend_type = _return
-            if spend_type == "food" or spend_type == "water":
-                call choose_spend_size(spend_type)
-                $ spend_size = _return
-                if spend_size:
-                    call buy_item(spend_type, spend_size)
-            jump before_work
-
-
 label choose_spend_type(can_buy_freetime):
     menu:
         "Food":
@@ -729,7 +706,7 @@ label choose_spend_type(can_buy_freetime):
         "Free Time" if can_buy_freetime:
             return "free_time"
             
-        "I changed my mind":
+        "I changed my mind" (cost=0):
             return None
 
 
@@ -737,26 +714,59 @@ label choose_spend_size(spend_type):
     $ label_map = {"food": "Food", "water": "Water"}
     $ display_word = label_map[spend_type]
 
-    # Dynamically set the costs based on what they are buying
     if spend_type == "food":
         $ cost_s, cost_m, cost_l = 20, 25, 30
     elif spend_type == "water":
         $ cost_s, cost_m, cost_l = 10, 15, 20
 
     menu:
-        "Small (+50 [display_word] for [cost_s] TME)":
+        # We use the variables directly in the cost argument!
+        "Small (+50 [display_word])" (cost=cost_s):
             return "small"
-        "Medium (+80 [display_word] for [cost_m] TME)":
+        "Medium (+80 [display_word])" (cost=cost_m):
             return "medium"
-        "Large (+100 [display_word] for [cost_l] TME)":
+        "Large (+100 [display_word])" (cost=cost_l):
             return "large"
-        "I changed my mind":
+        "I changed my mind" (cost=0):
             return None
+
+
+label before_work:
+
+    show screen status_hud
+    scene pc_sit_01 with fade
+    "What do you want to do?"
+
+    menu:
+
+        "Skip Shift." (cost=0) if dev_powers:
+            $ food = min(food + 100, max_food_and_water)
+            $ water = min(water + 100, max_food_and_water)
+            $ time_currency += 100
+            jump after_work_01
+
+        "Start your shift." (cost=0):
+            hide screen status_hud with fade
+            window hide
+            scene black_screen with fade
+            centered "Shift Starting..."
+            window auto
+            jump work_hours
+
+        "Spend TME." (cost=0):
+            call choose_spend_type(False)
+            $ spend_type = _return
+            if spend_type == "food" or spend_type == "water":
+                call choose_spend_size(spend_type)
+                $ spend_size = _return
+                if spend_size:
+                    call buy_item(spend_type, spend_size)
+            jump before_work
 
 
 label work_hours:
 
-    show screen status_hud with fade
+    show screen status_hud
     scene pc_sit_01 with fade
 
     # 1. Generate the random code (between 100 and 999)
@@ -887,12 +897,12 @@ label after_work_01:
 
 label after_work_02:
 
-    scene room_overview
+    scene room_overview with fade
 
     "What do you want to do?"
 
     menu:
-        "Spend TME":
+        "Spend TME" (cost=0):
             call choose_spend_type(True)
             $ spend_type = _return
             if spend_type == "food" or spend_type == "water":
@@ -902,11 +912,14 @@ label after_work_02:
                     call buy_item(spend_type, spend_size)
                 jump after_work_02
             elif spend_type == "free_time":
-                $ user_input = renpy.input("Enter amount of TME to spend (1 TME = 1 Minute):", allow="0123456789")
+                call screen free_time_terminal
+                $ user_input = _return
+                
                 if user_input == "":
                     $ input_number = 0
                 else:
                     $ input_number = int(user_input)
+                    
                 if input_number == 0:
                     "Purchase cancelled."
                     jump after_work_02
@@ -920,7 +933,7 @@ label after_work_02:
                     jump free_time
             jump after_work_02
 
-        "I am done for today":
+        "I am done for today" (cost=0):
             hide screen status_hud
             scene opening_convo_01
             s "Okay let's go to your cell."
@@ -929,6 +942,7 @@ label after_work_02:
 
 
 label free_time:
+    show screen status_hud
     scene room_overview
 
     if first_time_free_time:
@@ -937,7 +951,7 @@ label free_time:
 
     # THE MASTER LOOP
     while free_time_remaining > 0:
-        
+        show screen status_hud
         scene room_overview
         "What do you want to do during your free time?"
 
@@ -991,14 +1005,14 @@ label check_door:
     "What to do?"
     menu:
 
-        "Observe (Spend 1 Minute)":
+        "Observe" (cost=1):
             call pass_time(1, "door", "unsuspicious")
             scene room_look_door
             y "This door is made of solid metal. It looks impenetrable, and there's no visible lock or handle on this side—just a seamless surface."
             y "I don't know what lies beyond it. Maybe the soldier is guarding it, or perhaps it's just another part of this twisted setup. Escaping through here seems risky without more info."
             return
 
-        "Try to open the door (Spend 1 Minute)":
+        "Try to open the door" (cost=1):
             call pass_time(1, "door", "unsuspicious")
             scene black_screen with fade
             "You spent 1 minute trying to open the door..."
@@ -1006,17 +1020,19 @@ label check_door:
             y "As expected, the door is firmly locked. No give at all. I need to find another way."
             return
 
-        "Listen at the door (Spend 2 Minutes)":
+        "Listen at the door" (cost=2):
             call pass_time(2, "door", "unsuspicious")
+            hide screen status_hud with fade
             window hide
             scene black_screen with fade
             centered  "You press your ear against the door and listen for 2 minutes..."
+            show screen status_hud
             scene room_look_door with fade
             window auto
             y "I can hear faint echoes, maybe distant footsteps or machinery, but nothing clear. It's hard to tell if anyone's right outside."
             return
 
-        "I changed my mind":
+        "I changed my mind" (cost=0):
             return
 
 
@@ -1025,25 +1041,26 @@ label check_plant:
     "What to do?"
     menu:
 
-        "Observe (Spend 1 Minute)":
-
+        "Observe" (cost=1):
             scene room_look_plant
             call pass_time(1, "plant", "unsuspicious")
             y "An indoor plant? Cool. A companion I can grow old here with. Hopefully I can get our here before this dies of old age."
             y "Maybe there is something hidden here? maybe below the pot or in the soil?"
             return
 
-        "Search through the plant (Spend 5 Minutes)":
+        "Search the plant" (cost=5):
             call pass_time(5, "plant", "unsuspicious")
+            hide screen status_hud with fade
             window hide
             scene black_screen with fade
             centered "You spend 5 minutes carefully searching through the plant..."
+            show screen status_hud
             scene room_look_plant with fade
             window auto
             y "Ughh as expected, nothing here, just a plant. Hopefully I did not accidentally kill this plant."
             return
 
-        "I changed my mind":
+        "I changed my mind" (cost=0):
             return
 
 
@@ -1053,7 +1070,7 @@ label check_pc:
 
     menu:
 
-        "Observe (Spend 1 Minute)":
+        "Observe" (cost=1):
             call pass_time(1, "pc", "unsuspicious")
             scene room_look_pc
             y "This PC looks pretty standard—nothing fancy, just a typical company machine."
@@ -1061,22 +1078,26 @@ label check_pc:
             y "Maybe there's something interesting inside?"
             return
 
-        "Search through the PC (Spend 5 Minutes)":
+        "Search the PC" (cost=5):
             call pass_time(5, "pc", "unsuspicious")
+            hide screen status_hud with fade
             window hide
             scene black_screen with fade
             centered "You spend 5 minutes searching through the PC's hardware and case..."
+            show screen status_hud
             scene room_look_pc with fade
             window auto
             y "No hidden compartments or loose parts. Just a regular PC."
             return
 
-        "Spend 30 minutes deciphering. ([deciphering]/3)" if cipher_found and deciphering < 4:
+        "Decipher the cipher ([deciphering]/3)" (cost=1) if cipher_found and deciphering < 4:
             call pass_time(30, "pc", "unsuspicious")
+            hide screen status_hud with fade
             window hide
             scene black_screen with fade
             centered "You spend 30 minutes working on deciphering the cipher..."
             window auto
+            show screen status_hud
             scene pc_sit_01 with fade
             if deciphering == 1:
                 "This is tougher than I thought. I need more time to crack it."
@@ -1094,7 +1115,7 @@ label check_pc:
             $ deciphering += 1
             return
 
-        "I changed my mind":
+        "I changed my mind" (cost=0):
             return
 
 
@@ -1144,7 +1165,7 @@ label check_painting:
 
     "What to do?"
     menu:
-        "Observe (Spend 1 Minute)":
+        "Observe" (cost=1):
             call pass_time(1, "painting", "unsuspicious")
             scene room_look_painting
             y "This painting is not very ominous at all..."
@@ -1152,11 +1173,13 @@ label check_painting:
             y "I have played so many games that there should be something in the back of this painting."
             return
 
-        "Search through the painting (Spend 5 Minute)" if cipher_found == False:
+        "Search the painting" (cost=5) if cipher_found == False:
             call pass_time(5, "painting", "unsuspicious")
+            hide screen status_hud with fade
             window hide
             scene black_screen with fade
             centered "You spent 5 minutes searching through the painting..."
+            show screen status_hud
             scene room_look_painting with fade
             window auto
             y "Ughh this painting is huge and heavy."
@@ -1165,7 +1188,7 @@ label check_painting:
             $ cipher_found = True
             return
 
-        "I changed my mind":
+        "I changed my mind" (cost=0):
             return
 
 
@@ -1175,7 +1198,7 @@ label check_vent:
 
     menu:
 
-        "Observe (Spend 1 Minute)":
+        "Observe" (cost=1):
             call pass_time(1, "vent", "unsuspicious")
             scene room_look_vent
             y "This vent, it is so obvious that this will be where I can escape."
@@ -1185,37 +1208,47 @@ label check_vent:
             y "Oh well, lets try to see if I can open this."
             return
 
-        "Try to open the vent (Spend 5 Minute)" if has_screwdriver == False:
+        "Try to open vent" (cost=5) if has_screwdriver == False:
             call pass_time(5, "opening_vent", "suspicious")
+            hide screen status_hud with fade
             window hide
             scene black_screen with fade
             centered "You spent 5 minutes trying to open the vent..."
+            show screen status_hud
             scene room_look_vent with fade
             window auto
             y "Ughh the vent is screwed shut!"
             y "Can't remove it via force either as the soldier might notice that I am planning to escape."
             return
 
-        "Try to open the vent with screwdriver (Spend 5 Minute)" if has_screwdriver == True:
+        "Try to open vent with screwdriver" (cost=5) if has_screwdriver == True:
             call pass_time(5, "opening_vent", "suspicious")
+            hide screen status_hud with fade
             window hide
             scene black_screen with fade
             centered "You spent 5 minutes trying to open the vent with the screwdriver..."
             window auto
+            show screen status_hud
             scene room_without_vent_01 with fade
             y "Done."
             if first_time_vent:
                 y "Hopefully I can reach it." 
                 y "No worries though, I have superhuman jump."
                 $ first_time_vent = False
+            show screen status_hud
             "Explore the vents? (Make sure you have enough free time for this!)"
 
             menu:
 
-                "Yes":
+                "Yes" (cost=3):
                     call pass_time(3, "into_vent", "suspicious")
-                    scene room_without_vent_02
-                    "You spend 3 minutes getting in the vents."
+                    hide screen status_hud with fade
+                    scene black_screen with fade
+                    window hide
+                    centered "You spend 3 minutes getting in the vents."
+                    window auto
+                    show screen status_hud
+                    scene room_without_vent_02 with fade
                     if first_time_inside_vent:
                         y "Wow I was able to reach it. Thank you dev for this jumping powers."
                         y "Now, wow the vent really is large enough for me to crawl around here."
@@ -1234,13 +1267,14 @@ label check_vent:
                     $ wrong_turn_made = False
                     
                     # 3. Send them into the loop!
+                    show screen status_hud
                     jump vent_maze_loop
 
-                "Not yet":
+                "Not yet" (cost=0):
 
                     jump vent_fix
 
-        "I changed my mind":
+        "I changed my mind" (cost=0):
 
             return
             
@@ -1251,16 +1285,16 @@ label vent_fix:
     "What to do?"
     menu:
 
-        "Put the vent screen back. (Spend 5 minutes)":
+        "Put the vent screen back" (cost=5):
             call pass_time(5, "closing_vent", "suspicious")
+            hide screen status_hud with fade
             window hide
             scene black_screen with fade
             centered "Fixing the vent..."
             window auto
-            scene room_overview
             return
 
-        "Don't put the vent screen back.":
+        "Don't put the vent screen back" (cost=0):
             y "What are you doing? I do not want to be caught with this vent open."
             jump vent_fix
 
@@ -1272,14 +1306,14 @@ label vent_maze_loop:
 
     # The Choice Menu
     menu:
-        "Left":
+        "Left" (cost=5):
             $ chosen_direction = "Left"
-        "Middle":
+        "Middle" (cost=5):
             $ chosen_direction = "Middle"
-        "Right":
+        "Right" (cost=5):
             $ chosen_direction = "Right"
             
-        "Get back to the start of vents" if vent_progress > 0:
+        "Get back to the start of vents" (cost=vent_progress * 5) if vent_progress > 0:
             $ crawling_penalty = vent_progress * 5
             
             scene black_screen with fade
@@ -1293,7 +1327,8 @@ label vent_maze_loop:
             $ wrong_turn_made = False
             jump vent_maze_loop
 
-        "Get back in the office (spend 3 minutes climbing down the office)" if vent_progress == 0:
+        "Get back in the office" (cost=3) if vent_progress == 0:
+            hide screen status_hud
             scene black_screen with fade
             centered "You spent 3 minutes getting out of the vents and into the office."
             
@@ -1301,13 +1336,16 @@ label vent_maze_loop:
             call pass_time(3, "unto_vent", "suspicious")
             
             # If they weren't caught climbing down, put them back in the room
+            show screen status_hud
             scene room_without_vent_01
             jump vent_fix
 
     # Apply the forward movement penalty ONCE for Left/Middle/Right choices
+    hide screen status_hud
     scene black_screen with fade
     centered "Crawling in that direction..."
     call pass_time(5, "inside_vent", "suspicious")
+    show screen status_hud
 
     # The Logic Check! 
     # Did their choice match the correct path for THIS specific step?
@@ -1327,7 +1365,7 @@ label vent_maze_loop:
             
         else:
             # They made a mistake! Hit them with the dead end.
-            scene vent_grate
+            scene vent_grate with fade
             y "Damn... it's a dead end. I have to crawl all the way back to the start intersection."
             
             $ crawling_penalty = vent_progress * 5
@@ -1350,9 +1388,8 @@ label vent_maze_loop:
 
 # The Victory Label
 label vent_exit_found:
-
     hide screen status_hud
-    scene light_tunnel_01
+    scene light_tunnel_01 with fade
     y "Wait... is that light?"
     scene light_tunnel_02
     y "I..."
@@ -1506,39 +1543,55 @@ screen room_exploration_ui():
         unhovered SetScreenVariable("current_room_view", "room_overview.png")
 
     # --- EXIT BUTTON ---
-    textbutton "End Free Time / Go to Sleep":
-        # 'pos' uses exact pixels. 320px to the right, 20px down. 
-        # (If it overlaps your HUD, just change the 320 to a higher number like 400!)
-        pos (350, 20) 
+    textbutton "> END FREE TIME // SLEEP":
         
-        # Make the text bold and visible
-        text_size 22
-        text_bold True
-        text_color "#ffffff" # White text
-        text_hover_color "#dddddd" # Light grey when hovered
-        
-        # Give it a solid colored background box so it pops
-        background Solid("#8B0000cc") # Dark red, semi-transparent
-        hover_background Solid("#DC143Cee") # Bright crimson when hovered
-        
-        # Add some space inside the box so the text doesn't touch the edges
-        padding (20, 10)
+        # 'align' uses percentages. 0.97 is 97% to the right, 0.95 is 95% down.
+        # This perfectly tucks it into the bottom right corner!
+        align (0.97, 0.95) 
         
         action Return("end_free_time")
+        
+        # Force the button to be exactly 400x60 so our borders draw perfectly
+        xsize 400
+        ysize 60
+        
+        # Text Styling
+        text_size 22
+        text_bold True
+        text_color "#aaaaaa" # Dim grey when idle
+        text_hover_color "#ff4d4d" # Crimson Red when hovered!
+        text_xalign 0.5 # Centers the text perfectly inside the box
+        text_yalign 0.5
+        
+        # IDLE BACKGROUND: Pitch black with a subtle dark grey border
+        background Composite(
+            (400, 60),
+            (0, 0), Solid("#050505"),
+            (0, 0), Transform(Solid("#333333"), xsize=400, ysize=1), # Top
+            (0, 59), Transform(Solid("#333333"), xsize=400, ysize=1), # Bottom
+            (0, 0), Transform(Solid("#333333"), xsize=1, ysize=60), # Left
+            (399, 0), Transform(Solid("#333333"), xsize=1, ysize=60) # Right
+        )
+        
+        # HOVER BACKGROUND: Border thickens to 2 pixels and lights up Crimson Red!
+        hover_background Composite(
+            (400, 60),
+            (0, 0), Solid("#050505"),
+            (0, 0), Transform(Solid("#ff4d4d"), xsize=400, ysize=2), # Top
+            (0, 58), Transform(Solid("#ff4d4d"), xsize=400, ysize=2), # Bottom
+            (0, 0), Transform(Solid("#ff4d4d"), xsize=2, ysize=60), # Left
+            (398, 0), Transform(Solid("#ff4d4d"), xsize=2, ysize=60) # Right
+        )
 
 
 screen highlight_mask(x, y, w, h):
     zorder 105 # This ensures it draws OVER the status_hud (which is 100)
     
-    # We define where the dialogue box starts so we don't darken it!
-    # (If your text box is taller/shorter, you can adjust this 800 number)
-    $ bottom_safe_zone = 800 
-    
     # Top dark box
     add Solid("#000000cc") xpos 0 ypos 0 xsize 1920 ysize y
     
-    # Bottom dark box (Stops at the text box instead of going to 1080!)
-    add Solid("#000000cc") xpos 0 ypos (y+h) xsize 1920 ysize (bottom_safe_zone - (y+h))
+    # Bottom dark box (Now goes all the way to 1080!)
+    add Solid("#000000cc") xpos 0 ypos (y+h) xsize 1920 ysize (1080 - (y+h))
     
     # Left dark box
     add Solid("#000000cc") xpos 0 ypos y xsize x ysize h
@@ -1546,9 +1599,9 @@ screen highlight_mask(x, y, w, h):
     # Right dark box
     add Solid("#000000cc") xpos (x+w) ypos y xsize (1920 - (x+w)) ysize h
 
-    # A glowing golden border around the "hole"
+    # A glowing Neon Green border around the "hole" to match the new UI
     frame:
-        background Frame(Solid("#00000000"), outline=(4, "#FFD700", 0))
+        background Frame(Solid("#00000000"), outline=(4, "#32cd32", 0))
         xpos x ypos y xsize w ysize h
 
 
@@ -1613,7 +1666,7 @@ screen status_hud():
                 add Solid("#444444") xsize 280 ysize 1 # Subtle grey divider line
                 hbox:
                     xfill True
-                    text "Free Time:" size 18 bold True color "#aaaaaa"
+                    text "Free Time Remaining:" size 18 bold True color "#aaaaaa"
                     text "[free_time_remaining] mins" size 18 bold True color "#ff8c00" xalign 1.0
 
 
@@ -1655,6 +1708,53 @@ screen hacking_terminal():
                     color "#ffffff"
                     bold True
                     prefix "> " # Adds the classic hacker arrow before their typing
+                    xalign 0.5
+                
+                null height 5
+                
+                # Instructions
+                text "PRESS ENTER TO SUBMIT" size 12 color "#555555" kerning 1 xalign 0.5
+
+
+screen free_time_terminal():
+    zorder 110 # Draws on top of everything
+    modal True # Darkens the background and prevents clicking outside
+    
+    # Semi-transparent dark overlay
+    add Solid("#000000cc")
+    
+    # Outer frame (Neon Green border)
+    frame:
+        xalign 0.5 
+        yalign 0.5
+        padding (2, 2)
+        background Solid("#32cd32") 
+        
+        # Inner frame (Dark terminal background)
+        frame:
+            xsize 450 
+            padding (30, 30)
+            background Solid("#050505") 
+            
+            vbox:
+                spacing 15
+                
+                # Terminal Header
+                text "TME TO FREE TIME CONVERSION" size 22 bold True color "#32cd32" kerning 2 xalign 0.5
+                add Solid("#32cd32") xsize 390 ysize 2 # Green divider line
+                
+                text "ENTER THE AMOUNT OF TME TO CONVERT:" size 16 color "#aaaaaa" xalign 0.5
+                text "(1 TME = 1 MINUTE FREE TIME)" size 14 color "#ff8c00" xalign 0.5 # A nice orange warning text
+                
+                # The actual Input Field
+                input:
+                    default ""
+                    allow "0123456789"
+                    length 4 # Max 4 digits (in case they have a LOT of TME)
+                    size 50
+                    color "#ffffff"
+                    bold True
+                    prefix "> " 
                     xalign 0.5
                 
                 null height 5

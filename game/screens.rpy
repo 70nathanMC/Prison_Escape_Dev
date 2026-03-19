@@ -206,6 +206,13 @@ style input:
 ##
 ## https://www.renpy.org/doc/html/screen_special.html#choice
 
+transform choice_zoom:
+    transform_anchor True
+    on idle:
+        easein 0.1 zoom 0.97 # Barely shrinks (96%) to keep the large box stable
+    on hover:
+        easein 0.1 zoom 1.0  # Snaps to 100% when hovered
+
 screen choice(items):
     style_prefix "choice"
 
@@ -213,10 +220,10 @@ screen choice(items):
         for i in items:
             $ cost = i.kwargs.get("cost", None) if i.kwargs else None
 
-            # 1. We change 'textbutton' to 'button'
-            button:
+            # 1. We apply the terminal_zoom transform directly to the whole button!
+            button at choice_zoom:
                 action i.action
-                style "choice_button" # Uses our Composite backgrounds
+                style "choice_button" 
                 
                 hbox:
                     xfill True
@@ -231,11 +238,9 @@ screen choice(items):
                             yalign 0.5
                             xalign 1.0
                             font gui.text_font
-                            size 24
+                            size 28 # Bumped up slightly to account for the 0.8 idle shrink
                             bold True
-                            # Default color is invisible (transparent)
                             idle_color "#00000000" 
-                            # Hover color depends on if it's FREE or a cost
                             hover_color ("#32cd32" if cost == 0 else "#ff8c00")
 
 
@@ -247,25 +252,26 @@ style choice_vbox:
     xalign 0.5
     ypos 405
     yanchor 0.5
-
     spacing gui.choice_spacing
 
 style choice_button is default:
     properties gui.button_properties("choice_button")
-    # This ensures it uses the Composite backgrounds we built in gui.rpy
     idle_background gui.choice_button_background
     hover_background gui.choice_button_hover_background
-    
-    # We remove fixed padding so our hbox can handle alignment
     padding (25, 12, 25, 12) 
 
 style choice_button_text is default:
     properties gui.text_properties("choice_button")
-    # We use our new font!
     font gui.text_font 
-    size 28
+    size 30 # Bumped from 28 to 32 so it stays readable when shrunk to 80%
     idle_color "#aaaaaa"
     hover_color "#32cd32"
+
+style choice_cost_text:
+    size 28
+    bold True
+    color "#00000000" 
+    hover_color "#ff8c00"
 
 
 ## Quick Menu screen ###########################################################
@@ -273,25 +279,36 @@ style choice_button_text is default:
 ## The quick menu is displayed in-game to provide easy access to the out-of-game
 ## menus.
 
+transform quick_menu_zoom:
+    transform_anchor True # Keeps the zoom perfectly centered
+    on idle:
+        easein 0.1 zoom 0.85
+    on hover:
+        easein 0.1 zoom 1.0
+
+
 screen quick_menu():
 
-    ## Ensure this appears on top of other screens.
     zorder 100
 
     if quick_menu:
-
         hbox:
             style_prefix "quick"
-            style "quick_menu"
 
-            textbutton _("Back") action Rollback()
-            textbutton _("History") action ShowMenu('history')
-            textbutton _("Skip") action Skip() alternate Skip(fast=True, confirm=True)
-            textbutton _("Auto") action Preference("auto-forward", "toggle")
-            textbutton _("Save") action ShowMenu('save')
-            textbutton _("Q.Save") action QuickSave()
-            textbutton _("Q.Load") action QuickLoad()
-            textbutton _("Prefs") action ShowMenu('preferences')
+            xalign 0.5
+            yalign 1.015
+            yoffset -15 
+            spacing 35  
+
+            # We added 'at terminal_zoom' to the end of each command!
+            textbutton _("BACK") action Rollback() at quick_menu_zoom
+            textbutton _("HISTORY") action ShowMenu('history') at quick_menu_zoom
+            textbutton _("SKIP") action Skip() alternate Skip(fast=True, confirm=True) at quick_menu_zoom
+            textbutton _("AUTO") action Preference("auto-forward", "toggle") at quick_menu_zoom
+            textbutton _("SAVE") action ShowMenu('save') at quick_menu_zoom
+            textbutton _("Q.SAVE") action QuickSave() at quick_menu_zoom
+            textbutton _("Q.LOAD") action QuickLoad() at quick_menu_zoom
+            textbutton _("SETTINGS") action ShowMenu('preferences') at quick_menu_zoom
 
 
 ## This code ensures that the quick_menu screen is displayed in-game, whenever
@@ -308,26 +325,24 @@ style quick_button_text is button_text
 style quick_menu:
     xalign 0.5
     yalign 0.999
-    spacing 15 # Adds clean, even spacing between the system commands
+    spacing 30 # Adds clean, even spacing between the system commands
 
 style quick_button:
     padding (12, 4)
-    # IDLE: Completely transparent background
-    idle_background Solid("#00000000") 
-    # HOVER: A dark, glowing terminal-green highlight block appears behind the text!
-    hover_background Solid("#052205") 
+    background None
 
 style quick_button_text:
-    size 21 
+    font gui.name_text_font # Orbitron
+    size 20 # <-- Render it large so it stays crisp!
+    kerning 1
     
-    # IDLE: Changed to a crisp, light grey for high visibility
-    idle_color "#1e7b1e" 
+    outlines [ (2, "#000000", 0, 0) ]
     
-    # HOVER: Text lights up bright Neon Green
-    hover_color "#32cd32" 
-    
-    # SELECTED: Keeps the green color if that specific menu is active
+    idle_color "#aaaaaa" 
+    hover_color "#32cd32"
     selected_color "#32cd32"
+    selected_idle_color "#32cd32"
+    selected_hover_color "#32cd32"
 
 ################################################################################
 ## Main and Game Menu Screens
@@ -339,60 +354,59 @@ style quick_button_text:
 ## to other menus, and to start the game.
 
 screen navigation():
-
-    vbox:
+    # Centered horizontally at the top of the menu screen
+    hbox:
         style_prefix "navigation"
-
-        xpos gui.navigation_xpos
-        yalign 0.5
-
-        spacing gui.navigation_spacing
+        
+        xalign 0.5
+        ypos 40      # Pushes it slightly down from the very top edge
+        spacing 40   # Generous spacing between the terminal commands
 
         if main_menu:
-
-            textbutton _("Start") action Start()
-
+            textbutton _("START") action Start()
         else:
+            textbutton _("HISTORY") action ShowMenu("history")
+            textbutton _("SAVE") action ShowMenu("save")
 
-            textbutton _("History") action ShowMenu("history")
+        textbutton _("LOAD") action ShowMenu("load")
+        textbutton _("SETTINGS") action ShowMenu("preferences")
 
-            textbutton _("Save") action ShowMenu("save")
+        if not main_menu:
+            textbutton _("MAIN MENU") action MainMenu()
 
-        textbutton _("Load") action ShowMenu("load")
-
-        textbutton _("Preferences") action ShowMenu("preferences")
-
-        if _in_replay:
-
-            textbutton _("End Replay") action EndReplay(confirm=True)
-
-        elif not main_menu:
-
-            textbutton _("Main Menu") action MainMenu()
-
-        textbutton _("About") action ShowMenu("about")
-
-        if renpy.variant("pc") or (renpy.variant("web") and not renpy.variant("mobile")):
-
-            ## Help isn't necessary or relevant to mobile devices.
-            textbutton _("Help") action ShowMenu("help")
+        textbutton _("ABOUT") action ShowMenu("about")
 
         if renpy.variant("pc"):
+            textbutton _("QUIT") action Quit(confirm=not main_menu)
 
-            ## The quit button is banned on iOS and unnecessary on Android and
-            ## Web.
-            textbutton _("Quit") action Quit(confirm=not main_menu)
+        # THE FIX: 
+        # Instead of checking 'main_menu', we check the actual screen tag.
+        # This forces "BACK" to appear on ANY menu that isn't the Main Menu!
+        if not renpy.get_screen("main_menu"):
+            textbutton _("BACK") action Return()
 
+## --- NAVIGATION STYLING ---
 
 style navigation_button is gui_button
 style navigation_button_text is gui_button_text
 
 style navigation_button:
-    size_group "navigation"
-    properties gui.button_properties("navigation_button")
+    # No background for a clean, text-only terminal look
+    background None
+    padding (10, 5, 10, 5)
 
 style navigation_button_text:
-    properties gui.text_properties("navigation_button")
+    # Using your Name Font (Orbitron) for the menu headers
+    font gui.name_text_font 
+    size 24
+    kerning 1
+    
+    # IDLE: Muted grey
+    idle_color "#aaaaaa"
+    
+    # HOVER/SELECTED: Glowing Neon Green
+    hover_color "#32cd32"
+    selected_color "#32cd32"
 
 
 ## Main Menu screen ############################################################
@@ -401,60 +415,109 @@ style navigation_button_text:
 ##
 ## https://www.renpy.org/doc/html/screen_special.html#main-menu
 
+transform terminal_blink:
+    alpha 1.0
+    pause 0.4
+    alpha 0.0
+    pause 0.4
+    repeat
+
 screen main_menu():
 
-    ## This ensures that any other menu screen is replaced.
     tag menu
+    style_prefix "main_menu"
 
-    add gui.main_menu_background
+    # 1. THE BACKGROUND: Pure Hacker Terminal Black
+    add Solid("#020802") 
 
-    ## This empty frame darkens the main menu.
-    frame:
-        style "main_menu_frame"
+    # --- TRUE TERMINAL TYPING ENGINE ---
+    
+    # 1. We store the text, color, size, and bold properties in a list of Data
+    default boot_lines = [
+        ("SYSTEM BOOT SEQUENCE INITIATED...", "#32cd32", 16, False),
+        ("LOADING KERNEL............. OK", "#32cd32", 16, False),
+        ("MOUNTING VIRTUAL DRIVES.... OK", "#32cd32", 16, False),
+        ("BYPASSING SECURITY......... OK", "#32cd32", 16, False),
+        ("ESTABLISHING CONNECTION.... OK", "#32cd32", 16, False),
+        ("", "#32cd32", 16, False), # Empty line to create spacing before the orange text
+        ("AWAITING USER INPUT.", "#ff8c00", 18, True)
+    ]
 
-    ## The use statement includes another screen inside this one. The actual
-    ## contents of the main menu are in the navigation screen.
+    # 2. Trackers for the animation state
+    default curr_line = 0
+    default curr_char = 0
+    default is_done = False
+
+    # 3. The Typing Engine Loop (Fires every 0.02 seconds, immune to mouse-hover bugs!)
+    timer 0.02 repeat True action [
+        If(not is_done,
+            If(curr_char < len(boot_lines[curr_line][0]),
+                # If the line isn't finished, add 1 character
+                SetScreenVariable("curr_char", curr_char + 1),
+                
+                # If the line IS finished, move to the next line
+                If(curr_line < len(boot_lines) - 1,
+                    [SetScreenVariable("curr_line", curr_line + 1), SetScreenVariable("curr_char", 0)],
+                    # If we are on the very last line, stop the engine!
+                    SetScreenVariable("is_done", True) 
+                )
+            )
+        )
+    ]
+
+    # 2. DECORATION: The Display Canvas
+    vbox:
+        xpos 30
+        ypos 30
+        spacing 8
+
+        # Step A: Print all previous lines that are 100% complete
+        for i in range(curr_line):
+            text boot_lines[i][0] color boot_lines[i][1] size boot_lines[i][2] bold boot_lines[i][3]
+
+        # Step B: Print the line currently being typed, with a SOLID cursor attached to the end!
+        if not is_done:
+            $ partial_text = boot_lines[curr_line][0][:curr_char]
+            hbox:
+                text partial_text color boot_lines[curr_line][1] size boot_lines[curr_line][2] bold boot_lines[curr_line][3]
+                text "█" color boot_lines[curr_line][1] size boot_lines[curr_line][2] 
+                
+        # Step C: Once all typing finishes, print the final line and switch to a BLINKING cursor!
+        else:
+            hbox:
+                text boot_lines[curr_line][0] color boot_lines[curr_line][1] size boot_lines[curr_line][2] bold boot_lines[curr_line][3]
+                text "█" color boot_lines[curr_line][1] size boot_lines[curr_line][2] at terminal_blink
+
+    # 3. TOP MENU: Our custom horizontal navigation bar
     use navigation
 
-    if gui.show_name:
+    # 4. THE GAME TITLE: Massive, centered, glowing Neon Green
+    vbox:
+        xalign 0.5
+        yalign 0.5
+        spacing 10
+        
+        # Uses your Orbitron font!
+        text "[config.name!t]":
+            font gui.name_text_font 
+            size 90
+            color "#32cd32"
+            kerning 5 
+            xalign 0.5 
+            
+        # Version Number
+        text "v. [config.version]":
+            font gui.text_font 
+            size 20 
+            color "#aaaaaa" 
+            xalign 0.5
 
-        vbox:
-            style "main_menu_vbox"
-
-            text "[config.name!t]":
-                style "main_menu_title"
-
-            text "[config.version]":
-                style "main_menu_version"
-
-
+## --- MAIN MENU STYLES ---
 style main_menu_frame is empty
 style main_menu_vbox is vbox
 style main_menu_text is gui_text
 style main_menu_title is main_menu_text
 style main_menu_version is main_menu_text
-
-style main_menu_frame:
-    xsize 420
-    yfill True
-
-    background "gui/overlay/main_menu.png"
-
-style main_menu_vbox:
-    xalign 1.0
-    xoffset -30
-    xmaximum 1200
-    yalign 1.0
-    yoffset -30
-
-style main_menu_text:
-    properties gui.text_properties("main_menu", accent=True)
-
-style main_menu_title:
-    properties gui.text_properties("title")
-
-style main_menu_version:
-    properties gui.text_properties("version")
 
 
 ## Game Menu screen ############################################################
@@ -470,75 +533,58 @@ screen game_menu(title, scroll=None, yinitial=0.0, spacing=0):
 
     style_prefix "game_menu"
 
-    if main_menu:
-        add gui.main_menu_background
-    else:
-        add gui.game_menu_background
+    # Terminal Backgrounds (Always pure pitch black, no exceptions!)
+    add Solid("#020802")
 
     frame:
         style "game_menu_outer_frame"
 
-        hbox:
+        # The Content Frame (Save/Load/Settings)
+        # We removed the navigation frame so this spans the whole screen!
+        frame:
+            style "game_menu_content_frame"
 
-            ## Reserve space for the navigation section.
-            frame:
-                style "game_menu_navigation_frame"
+            if scroll == "viewport":
+                viewport:
+                    yinitial yinitial
+                    scrollbars "vertical"
+                    mousewheel True
+                    draggable True
+                    pagekeys True
+                    side_yfill True
 
-            frame:
-                style "game_menu_content_frame"
-
-                if scroll == "viewport":
-
-                    viewport:
-                        yinitial yinitial
-                        scrollbars "vertical"
-                        mousewheel True
-                        draggable True
-                        pagekeys True
-
-                        side_yfill True
-
-                        vbox:
-                            spacing spacing
-
-                            transclude
-
-                elif scroll == "vpgrid":
-
-                    vpgrid:
-                        cols 1
-                        yinitial yinitial
-
-                        scrollbars "vertical"
-                        mousewheel True
-                        draggable True
-                        pagekeys True
-
-                        side_yfill True
-
+                    vbox:
                         spacing spacing
-
                         transclude
 
-                else:
-
+            elif scroll == "vpgrid":
+                vpgrid:
+                    cols 1
+                    yinitial yinitial
+                    scrollbars "vertical"
+                    mousewheel True
+                    draggable True
+                    pagekeys True
+                    side_yfill True
+                    spacing spacing
                     transclude
 
+            else:
+                transclude
+
+    # Use our new horizontal top-bar navigation ON TOP of everything
     use navigation
 
-    textbutton _("Return"):
-        style "return_button"
-
-        action Return()
-
+    # The Page Title (e.g., "SAVE", "PREFERENCES")
     label title
 
     if main_menu:
         key "game_menu" action ShowMenu("main_menu")
 
 
+## --- STYLES FOR THE HACKER MENU ---
+
 style game_menu_outer_frame is empty
-style game_menu_navigation_frame is empty
 style game_menu_content_frame is empty
 style game_menu_viewport is gui_viewport
 style game_menu_side is gui_side
@@ -547,26 +593,18 @@ style game_menu_scrollbar is gui_vscrollbar
 style game_menu_label is gui_label
 style game_menu_label_text is gui_label_text
 
-style return_button is navigation_button
-style return_button_text is navigation_button_text
-
 style game_menu_outer_frame:
-    bottom_padding 45
-    top_padding 180
-
-    background "gui/overlay/game_menu.png"
-
-style game_menu_navigation_frame:
-    xsize 420
+    xfill True
     yfill True
+    top_padding 200 # Leaves space for the navigation and title at the top
+    bottom_padding 45
+    background None # Remove the default image background
 
 style game_menu_content_frame:
-    left_margin 60
+    xalign 0.5 # Centers the Save slots / Settings
+    xsize 1600 # Widen the content area since we removed the side bar
+    left_margin 30
     right_margin 30
-    top_margin 15
-
-style game_menu_viewport:
-    xsize 1380
 
 style game_menu_vscrollbar:
     unscrollable gui.unscrollable
@@ -575,18 +613,15 @@ style game_menu_side:
     spacing 15
 
 style game_menu_label:
-    xpos 75
-    ysize 180
+    xpos 100
+    ypos 140 # Positioned below the navigation bar
 
 style game_menu_label_text:
-    size 75
-    color gui.accent_color
+    font gui.name_text_font # Uses Orbitron!
+    size 45
+    color "#32cd32" # Neon Green
     yalign 0.5
-
-style return_button:
-    xpos gui.navigation_xpos
-    yalign 1.0
-    yoffset -45
+    kerning 2
 
 
 ## About screen ################################################################
@@ -600,32 +635,85 @@ screen about():
 
     tag menu
 
-    ## This use statement includes the game_menu screen inside this one. The
-    ## vbox child is then included inside the viewport inside the game_menu
-    ## screen.
-    use game_menu(_("About"), scroll="viewport"):
+    # No scrollbar!
+    use game_menu(_("SYSTEM INFO // ABOUT")):
 
         style_prefix "about"
 
-        vbox:
+        # 1. THE CANVAS: 'fixed' automatically fills the entire available screen space.
+        fixed:
+            xfill True
+            yfill True
 
-            label "[config.name!t]"
-            text _("Version [config.version!t]\n")
+            # 2. THE TRUE CENTER: This box finds the exact middle of the 'fixed' canvas.
+            vbox:
+                align (0.5, 0.5)
+                spacing 40
+                xsize 800 
 
-            ## gui.about is usually set in options.rpy.
-            if gui.about:
-                text "[gui.about!t]\n"
+                # --- TOP BLOCK: Title and Version ---
+                hbox:
+                    xalign 0.5
+                    spacing 20
+                    
+                    text "[config.name!t]" style "about_title" yalign 1.0
+                    text "v. [config.version!t]" style "about_version" yalign 1.0
 
-            text _("Made with {a=https://www.renpy.org/}Ren'Py{/a} [renpy.version_only].\n\n[renpy.license!t]")
+                # --- MIDDLE BLOCK: Fake System Diagnostics ---
+                vbox:
+                    xalign 0.5
+                    spacing 8
+                    
+                    text "> INITIALIZING DIAGNOSTICS..." style "about_sys_text"
+                    text "> ENGINE: REN'PY [renpy.version_only]" style "about_sys_text"
+                    text "> OS: AI_CORE_v9.9.2" style "about_sys_text"
+                    text "> BUILD DATE: 2055.05.02" style "about_sys_text" 
+                    text "> LICENSE: SECURED" style "about_sys_text"
 
+                # --- BOTTOM BLOCK: Author Text & Licenses ---
+                if gui.about:
+                    text "[gui.about!t]" style "about_text" xalign 0.5 text_align 0.5
+
+                # The required Ren'Py license text
+                text _("Made with {a=https://www.renpy.org/}Ren'Py{/a}.\n\n[renpy.license!t]") style "about_license"
+
+
+## --- ABOUT SCREEN STYLES ---
 
 style about_label is gui_label
 style about_label_text is gui_label_text
 style about_text is gui_text
 
-style about_label_text:
-    size gui.label_text_size
+style about_title:
+    font gui.name_text_font # Orbitron
+    size 60
+    color "#32cd32" # Neon Green
+    kerning 3
 
+style about_version:
+    font gui.name_text_font
+    size 26 # Bumped the size up slightly so it balances well next to the title
+    color "#ff8c00" # Orange warning color
+    kerning 2
+
+style about_sys_text:
+    font gui.text_font # Exo 2
+    size 20
+    color "#aaaaaa"
+    xalign 0.5 # Ensures the console commands stay perfectly centered under the title
+
+style about_text:
+    font gui.text_font
+    size 22
+    color "#ffffff"
+    layout "subtitle" 
+
+style about_license:
+    font gui.text_font
+    size 14
+    color "#555555" 
+    text_align 0.5
+    xalign 0.5
 
 ## Load and Save screens #######################################################
 ##
@@ -652,94 +740,68 @@ screen load():
 
 screen file_slots(title):
 
-    default page_name_value = FilePageNameInputValue(pattern=_("Page {}"), auto=_("Automatic saves"), quick=_("Quick saves"))
+    default page_name_value = FilePageNameInputValue(pattern=_("PAGE {}"), auto=_("AUTO SAVES"), quick=_("QUICK SAVES"))
 
     use game_menu(title):
 
-        fixed:
+        # We use a vbox to perfectly stack the page numbers on top of the grid
+        vbox:
+            xalign 0.5
+            ypos 50 # Pushes the whole block down slightly
+            spacing 40
 
-            ## This ensures the input will get the enter event before any of the
-            ## buttons do.
-            order_reverse True
-
-            ## The page name, which can be edited by clicking on a button.
-            button:
-                style "page_label"
-
-                key_events True
+            # --- THE TOP PAGE NAVIGATION ---
+            hbox:
                 xalign 0.5
-                action page_name_value.Toggle()
+                spacing 25
 
-                input:
-                    style "page_label_text"
-                    value page_name_value
+                textbutton _("<") action FilePagePrevious() style "page_button"
+                textbutton _("AUTO") action FilePage("auto") style "page_button"
+                textbutton _("QUICK") action FilePage("quick") style "page_button"
 
-            ## The grid of file slots.
+                # Generates buttons for Pages 1 through 9
+                for page in range(1, 10):
+                    textbutton str(page) action FilePage(page) style "page_button"
+
+                textbutton _(">") action FilePageNext() style "page_button"
+
+
+            # --- THE DATA PACKET GRID (SAVE SLOTS) ---
             grid gui.file_slot_cols gui.file_slot_rows:
                 style_prefix "slot"
-
                 xalign 0.5
-                yalign 0.5
-
-                spacing gui.slot_spacing
+                spacing 30 # Nice wide gap between slots
 
                 for i in range(gui.file_slot_cols * gui.file_slot_rows):
-
                     $ slot = i + 1
 
                     button:
                         action FileAction(slot)
+                        style "slot_button" 
 
-                        has vbox
-
-                        add FileScreenshot(slot) xalign 0.5
-
-                        text FileTime(slot, format=_("{#file_time}%A, %B %d %Y, %H:%M"), empty=_("empty slot")):
-                            style "slot_time_text"
-
-                        text FileSaveName(slot):
-                            style "slot_name_text"
-
-                        key "save_delete" action FileDelete(slot)
-
-            ## Buttons to access other pages.
-            vbox:
-                style_prefix "page"
-
-                xalign 0.5
-                yalign 1.0
-
-                hbox:
-                    xalign 0.5
-
-                    spacing gui.page_spacing
-
-                    textbutton _("<") action FilePagePrevious()
-                    key "save_page_prev" action FilePagePrevious()
-
-                    if config.has_autosave:
-                        textbutton _("{#auto_page}A") action FilePage("auto")
-
-                    if config.has_quicksave:
-                        textbutton _("{#quick_page}Q") action FilePage("quick")
-
-                    ## range(1, 10) gives the numbers from 1 to 9.
-                    for page in range(1, 10):
-                        textbutton "[page]" action FilePage(page)
-
-                    textbutton _(">") action FilePageNext()
-                    key "save_page_next" action FilePageNext()
-
-                if config.has_sync:
-                    if CurrentScreenName() == "save":
-                        textbutton _("Upload Sync"):
-                            action UploadSync()
+                        vbox:
                             xalign 0.5
-                    else:
-                        textbutton _("Download Sync"):
-                            action DownloadSync()
-                            xalign 0.5
+                            yalign 0.5
+                            
+                            # 1. Reduce the general spacing so the text lines sit closer together
+                            spacing 5 
 
+                            # The Screenshot
+                            add Transform(FileScreenshot(slot), size=(360, 220)) xalign 0.5
+                            
+                            # 2. Add a hardcoded invisible spacer to push the text away from the image!
+                            null height 15 
+
+                            # The Timestamp (Custom formatted to look like a system log!)
+                            text FileTime(slot, format=_("%Y-%m-%d // %H:%M:%S"), empty=_("EMPTY // NO DATA")):
+                                style "slot_time_text"
+
+                            # The Save Name
+                            text FileSaveName(slot):
+                                style "slot_name_text"
+
+
+## --- SLOT STYLING ---
 
 style page_label is gui_label
 style page_label_text is gui_label_text
@@ -751,27 +813,56 @@ style slot_button_text is gui_button_text
 style slot_time_text is slot_button_text
 style slot_name_text is slot_button_text
 
-style page_label:
-    xpadding 75
-    ypadding 5
-    xalign 0.5
-
-style page_label_text:
-    textalign 0.5
-    layout "subtitle"
-    hover_color gui.hover_color
-
+# Strip the background from the page numbers (<, 1, 2, 3, >)
 style page_button:
-    properties gui.button_properties("page_button")
+    background None
+    padding (10, 5)
 
 style page_button_text:
-    properties gui.text_properties("page_button")
+    font gui.name_text_font
+    size 22
+    idle_color "#aaaaaa"
+    hover_color "#32cd32"
+    selected_idle_color "#32cd32"
+    selected_hover_color "#32cd32"
 
 style slot_button:
-    properties gui.button_properties("slot_button")
+    xsize 380
+    ysize 310 # <-- Increased from 260 to give the text room to breathe!
+    padding (15, 15, 15, 15)
+    
+    # IDLE: Pitch black with a subtle 1px grey border
+    idle_background Composite(
+        (380, 310),
+        (0, 0), Solid("#050505"),
+        (0, 0), Transform(Solid("#333333"), xsize=380, ysize=1), # Top
+        (0, 309), Transform(Solid("#333333"), xsize=380, ysize=1), # Bottom
+        (0, 0), Transform(Solid("#333333"), xsize=1, ysize=310), # Left
+        (379, 0), Transform(Solid("#333333"), xsize=1, ysize=310) # Right
+    )
+    
+    # HOVER: Dark green tint, thick 2px Neon Green border
+    hover_background Composite(
+        (380, 310),
+        (0, 0), Solid("#081208"),
+        (0, 0), Transform(Solid("#32cd32"), xsize=380, ysize=2), # Top
+        (0, 308), Transform(Solid("#32cd32"), xsize=380, ysize=2), # Bottom
+        (0, 0), Transform(Solid("#32cd32"), xsize=2, ysize=310), # Left
+        (378, 0), Transform(Solid("#32cd32"), xsize=2, ysize=310) # Right
+    )
 
-style slot_button_text:
-    properties gui.text_properties("slot_button")
+style slot_time_text:
+    font gui.name_text_font # Orbitron
+    size 18
+    idle_color "#aaaaaa"
+    hover_color "#32cd32"
+    xalign 0.5
+
+style slot_name_text:
+    font gui.text_font
+    size 16
+    color "#ffffff"
+    xalign 0.5
 
 
 ## Preferences screen ##########################################################
@@ -782,155 +873,130 @@ style slot_button_text:
 ## https://www.renpy.org/doc/html/screen_special.html#preferences
 
 screen preferences():
-
     tag menu
-
-    use game_menu(_("Preferences"), scroll="viewport"):
+    use game_menu(_("SETTINGS"), scroll="viewport"):
 
         vbox:
+            xfill True
+            ypos 50
+            spacing 60
 
+            # This hbox splits the screen into a Left Column (Toggles) and Right Column (Sliders)
             hbox:
-                box_wrap True
+                xalign 0.5
+                spacing 80
 
-                if renpy.variant("pc") or renpy.variant("web"):
+                # --- LEFT COLUMN (Display & Skip) ---
+                vbox:
+                    spacing 40
+                    xsize 350
+
+                    if renpy.variant("pc") or renpy.variant("web"):
+                        vbox:
+                            spacing 15
+                            text _("DISPLAY") style "hacker_pref_header"
+                            textbutton _("WINDOWED") action Preference("display", "window") style "hacker_radio"
+                            textbutton _("FULLSCREEN") action Preference("display", "fullscreen") style "hacker_radio"
 
                     vbox:
-                        style_prefix "radio"
-                        label _("Display")
-                        textbutton _("Window") action Preference("display", "window")
-                        textbutton _("Fullscreen") action Preference("display", "fullscreen")
+                        spacing 15
+                        text _("SKIP") style "hacker_pref_header"
+                        textbutton _("UNSEEN TEXT") action Preference("skip", "toggle") style "hacker_radio"
+                        textbutton _("AFTER CHOICES") action Preference("after choices", "toggle") style "hacker_radio"
+                        textbutton _("TRANSITIONS") action InvertSelected(Preference("transitions", "toggle")) style "hacker_radio"
 
+                # --- RIGHT COLUMN (Sliders & Audio) ---
                 vbox:
-                    style_prefix "check"
-                    label _("Skip")
-                    textbutton _("Unseen Text") action Preference("skip", "toggle")
-                    textbutton _("After Choices") action Preference("after choices", "toggle")
-                    textbutton _("Transitions") action InvertSelected(Preference("transitions", "toggle"))
+                    spacing 40
+                    xsize 600
 
-                ## Additional vboxes of type "radio_pref" or "check_pref" can be
-                ## added here, to add additional creator-defined preferences.
+                    # Text Sliders
+                    vbox:
+                        spacing 15
+                        text _("TEXT SPEED") style "hacker_pref_header"
+                        bar value Preference("text speed") style "hacker_slider"
 
-            null height (4 * gui.pref_spacing)
+                    vbox:
+                        spacing 15
+                        text _("AUTO-FORWARD TIME") style "hacker_pref_header"
+                        bar value Preference("auto-forward time") style "hacker_slider"
 
-            hbox:
-                style_prefix "slider"
-                box_wrap True
-
-                vbox:
-
-                    label _("Text Speed")
-
-                    bar value Preference("text speed")
-
-                    label _("Auto-Forward Time")
-
-                    bar value Preference("auto-forward time")
-
-                vbox:
-
+                    # Audio Sliders
                     if config.has_music:
-                        label _("Music Volume")
-
-                        hbox:
-                            bar value Preference("music volume")
+                        vbox:
+                            spacing 15
+                            text _("MUSIC VOLUME") style "hacker_pref_header"
+                            bar value Preference("music volume") style "hacker_slider"
 
                     if config.has_sound:
-
-                        label _("Sound Volume")
-
-                        hbox:
-                            bar value Preference("sound volume")
-
-                            if config.sample_sound:
-                                textbutton _("Test") action Play("sound", config.sample_sound)
-
+                        vbox:
+                            spacing 15
+                            text _("SOUND VOLUME") style "hacker_pref_header"
+                            hbox:
+                                spacing 20
+                                bar value Preference("sound volume") style "hacker_slider"
+                                if config.sample_sound:
+                                    textbutton _("TEST") action Play("sound", config.sample_sound) style "hacker_radio"
 
                     if config.has_voice:
-                        label _("Voice Volume")
-
-                        hbox:
-                            bar value Preference("voice volume")
-
-                            if config.sample_voice:
-                                textbutton _("Test") action Play("voice", config.sample_voice)
+                        vbox:
+                            spacing 15
+                            text _("VOICE VOLUME") style "hacker_pref_header"
+                            hbox:
+                                spacing 20
+                                bar value Preference("voice volume") style "hacker_slider"
+                                if config.sample_voice:
+                                    textbutton _("TEST") action Play("voice", config.sample_voice) style "hacker_radio"
 
                     if config.has_music or config.has_sound or config.has_voice:
-                        null height gui.pref_spacing
-
-                        textbutton _("Mute All"):
-                            action Preference("all mute", "toggle")
-                            style "mute_all_button"
+                        vbox:
+                            spacing 15
+                            textbutton _("MUTE ALL AUDIO") action Preference("all mute", "toggle") style "hacker_radio"
 
 
-style pref_label is gui_label
-style pref_label_text is gui_label_text
-style pref_vbox is vbox
+## --- HACKER PREFERENCES STYLES ---
+# We delete the messy default GUI styles and build pure, custom ones.
 
-style radio_label is pref_label
-style radio_label_text is pref_label_text
-style radio_button is gui_button
-style radio_button_text is gui_button_text
-style radio_vbox is pref_vbox
+style hacker_pref_header:
+    font gui.name_text_font # Orbitron
+    size 28
+    color "#32cd32" # Neon Green
+    kerning 2
 
-style check_label is pref_label
-style check_label_text is pref_label_text
-style check_button is gui_button
-style check_button_text is gui_button_text
-style check_vbox is pref_vbox
+style hacker_radio is button
+style hacker_radio_text is button_text
 
-style slider_label is pref_label
-style slider_label_text is pref_label_text
-style slider_slider is gui_slider
-style slider_button is gui_button
-style slider_button_text is gui_button_text
-style slider_pref_vbox is pref_vbox
+style hacker_radio:
+    padding (0, 5)
+    # We explicitly remove the default radio/checkbox images!
+    foreground None 
 
-style mute_all_button is check_button
-style mute_all_button_text is check_button_text
+style hacker_radio_text:
+    font gui.text_font # Exo 2
+    size 22
+    
+    # IDLE: Dark Grey
+    idle_color "#555555"
+    hover_color "#ffffff"
+    
+    # SELECTED: Neon Green
+    selected_idle_color "#32cd32"
+    selected_hover_color "#32cd32"
 
-style pref_label:
-    top_margin gui.pref_spacing
-    bottom_margin 3
-
-style pref_label_text:
-    yalign 1.0
-
-style pref_vbox:
-    xsize 338
-
-style radio_vbox:
-    spacing gui.pref_button_spacing
-
-style radio_button:
-    properties gui.button_properties("radio_button")
-    foreground "gui/button/radio_[prefix_]foreground.png"
-
-style radio_button_text:
-    properties gui.text_properties("radio_button")
-
-style check_vbox:
-    spacing gui.pref_button_spacing
-
-style check_button:
-    properties gui.button_properties("check_button")
-    foreground "gui/button/check_[prefix_]foreground.png"
-
-style check_button_text:
-    properties gui.text_properties("check_button")
-
-style slider_slider:
-    xsize 525
-
-style slider_button:
-    properties gui.button_properties("slider_button")
-    yalign 0.5
-    left_margin 15
-
-style slider_button_text:
-    properties gui.text_properties("slider_button")
-
-style slider_vbox:
-    xsize 675
+# This uses pure color blocks instead of image files for sliders.
+style hacker_slider is bar:
+    xsize 525 
+    ysize 20
+    
+    # The empty right side of the bar (Almost black)
+    right_bar Solid("#050505")
+    
+    # The filled left side of the bar (Neon Green)
+    left_bar Solid("#32cd32")
+    
+    # The draggable thumb (Crisp White Block - Sized correctly via Transform!)
+    thumb Transform(Solid("#ffffff"), xsize=20, ysize=30) 
+    thumb_offset 10
 
 
 ## History screen ##############################################################
@@ -944,83 +1010,86 @@ style slider_vbox:
 screen history():
 
     tag menu
-
-    ## Avoid predicting this screen, as it can be very large.
+    # Predict false ensures we don't try to load images for this text-heavy screen
     predict False
 
-    use game_menu(_("History"), scroll=("vpgrid" if gui.history_height else "viewport"), yinitial=1.0, spacing=gui.history_spacing):
+    use game_menu(_("SYSTEM LOG // HISTORY"), scroll="vpgrid", yinitial=1.0):
 
         style_prefix "history"
 
         for h in _history_list:
 
-            window:
+            # Each history entry is contained within its own box
+            frame:
+                style "history_entry_box"
 
-                ## This lays things out properly if history_height is None.
-                has fixed:
-                    yfit True
+                vbox:
+                    xfill True
+                    spacing 5
 
-                if h.who:
+                    # THE SPEAKER NAME
+                    if h.who:
+                        label h.who:
+                            style "history_name"
+                            
+                            # We check if the 'who' matches specific colors so the log matches the game!
+                            # (If you add more characters later, you can add them here, or just let them be default green)
+                            if h.who == "You":
+                                text_color "#4da6ff"
+                            elif h.who == "Soldier":
+                                text_color "#32cd32"
+                            elif h.who == "AI":
+                                text_color "#ff4d4d"
+                            elif h.who == "SYSTEM BOT":
+                                text_color "#ffd700"
+                            else:
+                                text_color "#32cd32" # Default hacker green
 
-                    label h.who:
-                        style "history_name"
-                        substitute False
-
-                        ## Take the color of the who text from the Character, if
-                        ## set.
-                        if "color" in h.who_args:
-                            text_color h.who_args["color"]
-
-                $ what = renpy.filter_text_tags(h.what, allow=gui.history_allow_tags)
-                text what:
-                    substitute False
+                    # THE DIALOGUE TEXT
+                    # We inject our Hacker Arrow directly into the text for the history view!
+                    text "> " + h.what:
+                        style "history_text"
 
         if not _history_list:
-            label _("The dialogue history is empty.")
+            text _("LOG EMPTY // NO DATA RECORDED") style "history_empty"
 
 
-## This determines what tags are allowed to be displayed on the history screen.
+## --- HISTORY STYLES ---
 
-define gui.history_allow_tags = { "alt", "noalt", "rt", "rb", "art" }
-
-
-style history_window is empty
-
+style history_entry_box is empty
 style history_name is gui_label
 style history_name_text is gui_label_text
 style history_text is gui_text
+style history_empty is gui_text
 
-style history_label is gui_label
-style history_label_text is gui_label_text
-
-style history_window:
+style history_entry_box:
     xfill True
-    ysize gui.history_height
+    bottom_padding 15
+    bottom_margin 15
 
 style history_name:
-    xpos gui.history_name_xpos
-    xanchor gui.history_name_xalign
-    ypos gui.history_name_ypos
-    xsize gui.history_name_width
+    xalign 0.0
 
 style history_name_text:
-    min_width gui.history_name_width
-    textalign gui.history_name_xalign
+    font gui.name_text_font # Orbitron
+    size 20
+    bold True
+    kerning 1
 
 style history_text:
-    xpos gui.history_text_xpos
-    ypos gui.history_text_ypos
-    xanchor gui.history_text_xalign
-    xsize gui.history_text_width
-    min_width gui.history_text_width
-    textalign gui.history_text_xalign
-    layout ("subtitle" if gui.history_text_xalign else "tex")
+    font gui.text_font # Exo 2
+    size 22
+    color "#aaaaaa"
+    xalign 0.0
+    # Adds a bit of left margin so the text indents under the name
+    left_margin 20 
 
-style history_label:
-    xfill True
-
-style history_label_text:
+style history_empty:
+    font gui.name_text_font
+    size 28
+    color "#ff4d4d" # Crimson warning red
     xalign 0.5
+    yalign 0.5
 
 
 ## Help screen #################################################################
@@ -1201,56 +1270,83 @@ screen confirm(message, yes_action, no_action):
 
     ## Ensure other screens do not get input while this screen is displayed.
     modal True
-
     zorder 200
 
     style_prefix "confirm"
 
-    add "gui/overlay/confirm.png"
+    # Darkens the entire screen behind the pop-up to focus the player
+    add Solid("#000000cc") 
 
     frame:
+        style "confirm_frame"
 
         vbox:
-            xalign .5
-            yalign .5
-            spacing 45
+            xalign 0.5
+            yalign 0.5
+            spacing 40
 
+            # Warning Header
+            text _("SYSTEM OVERRIDE REQUIRED:") style "confirm_header" xalign 0.5
+
+            # The actual question (e.g., "Are you sure you want to quit?")
             label _(message):
                 style "confirm_prompt"
                 xalign 0.5
 
+            # The YES / NO buttons
             hbox:
                 xalign 0.5
-                spacing 150
+                spacing 120
 
-                textbutton _("Yes") action yes_action
-                textbutton _("No") action no_action
+                textbutton _("YES") action yes_action style "confirm_button"
+                textbutton _("NO") action no_action style "confirm_button"
 
     ## Right-click and escape answer "no".
     key "game_menu" action no_action
 
 
-style confirm_frame is gui_frame
+## --- CONFIRM SCREEN STYLES ---
+
+style confirm_frame is empty
 style confirm_prompt is gui_prompt
 style confirm_prompt_text is gui_prompt_text
 style confirm_button is gui_medium_button
 style confirm_button_text is gui_medium_button_text
 
 style confirm_frame:
-    background Frame([ "gui/confirm_frame.png", "gui/frame.png"], gui.confirm_frame_borders, tile=gui.frame_tile)
-    padding gui.confirm_frame_borders.padding
-    xalign .5
-    yalign .5
+    xalign 0.5
+    yalign 0.5
+    padding (45, 45, 45, 45)
+    xsize 600
+    
+    # We use a smart Frame here so the box automatically stretches 
+    # to fit the text, but keeps a 2px Crimson Red border!
+    background Frame(Solid("#050505"), outline=(2, "#ff4d4d", 0))
+
+style confirm_header:
+    font gui.name_text_font # Orbitron
+    size 22
+    color "#ff4d4d" # Crimson Red
+    kerning 2
 
 style confirm_prompt_text:
-    textalign 0.5
+    font gui.text_font # Exo 2
+    size 24
+    color "#ffffff"
+    text_align 0.5
     layout "subtitle"
 
 style confirm_button:
-    properties gui.button_properties("confirm_button")
+    background None
+    padding (10, 5)
 
 style confirm_button_text:
-    properties gui.text_properties("confirm_button")
+    font gui.name_text_font # Orbitron
+    size 28
+    idle_color "#aaaaaa"
+    
+    # We make the hover color Neon Green so it feels like a positive/active choice
+    hover_color "#32cd32"
 
 
 ## Skip indicator screen #######################################################
@@ -1640,16 +1736,34 @@ style vbar:
     bottom_bar Frame("gui/phone/bar/bottom.png", gui.vbar_borders, tile=gui.bar_tile)
 
 style scrollbar:
-    variant "small"
-    ysize gui.scrollbar_size
-    base_bar Frame("gui/phone/scrollbar/horizontal_[prefix_]bar.png", gui.scrollbar_borders, tile=gui.scrollbar_tile)
-    thumb Frame("gui/phone/scrollbar/horizontal_[prefix_]thumb.png", gui.scrollbar_borders, tile=gui.scrollbar_tile)
+    ysize 12
+    unscrollable "hide"
+    
+    # The Track: A very thin, 2px dark grey wire running horizontally
+    base_bar Transform(Solid("#111111"), ysize=2, yalign=0.5)
+    
+    # The Thumb: A muted green block that sits on the wire
+    thumb Transform(Solid("#1e7b1e"), ysize=8, yalign=0.5)
+    
+    # Hover State: The block lights up pure Neon Green when grabbed!
+    hover_thumb Transform(Solid("#32cd32"), ysize=8, yalign=0.5)
 
 style vscrollbar:
-    variant "small"
-    xsize gui.scrollbar_size
-    base_bar Frame("gui/phone/scrollbar/vertical_[prefix_]bar.png", gui.vscrollbar_borders, tile=gui.scrollbar_tile)
-    thumb Frame("gui/phone/scrollbar/vertical_[prefix_]thumb.png", gui.vscrollbar_borders, tile=gui.scrollbar_tile)
+    xsize 12
+    unscrollable "hide"
+    
+    # The Track: A very thin, 2px dark grey wire running vertically
+    base_bar Transform(Solid("#111111"), xsize=2, xalign=0.5)
+    
+    # The Thumb: A muted green block that sits on the wire
+    thumb Transform(Solid("#1e7b1e"), xsize=8, xalign=0.5)
+    
+    # Hover State: The block lights up pure Neon Green when grabbed!
+    hover_thumb Transform(Solid("#32cd32"), xsize=12, xalign=0.5)
+
+# Ensure the History and Settings screens inherit this new sleek look
+style game_menu_vscrollbar is vscrollbar:
+    unscrollable "hide"
 
 style slider:
     variant "small"
@@ -1670,12 +1784,3 @@ style slider_vbox:
 style slider_slider:
     variant "small"
     xsize 900
-
-
-style choice_cost_text:
-    size 24
-    bold True
-    # WE MAKE IT INVISIBLE BY DEFAULT
-    color "#00000000" 
-    # WE MAKE IT BRIGHT WHEN THE BUTTON IS HOVERED
-    hover_color "#ff8c00"

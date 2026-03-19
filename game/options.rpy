@@ -12,7 +12,7 @@
 ##
 ## The _() surrounding the string marks it as eligible for translation.
 
-define config.name = _("VN Project")
+define config.name = _("Free TME")
 
 
 ## Determines if the title given above is shown on the main menu screen. Set
@@ -30,6 +30,12 @@ define config.version = "1.0"
 ## triple-quotes, and leave a blank line between paragraphs.
 
 define gui.about = _p("""
+I am Jonathan Berang. 
+I made this game solo.
+
+This is my college final output for CCS16 Game Console Integration 3B Group B.
+
+Group Name: Indie
 """)
 
 
@@ -37,7 +43,7 @@ define gui.about = _p("""
 ## distribution. This must be ASCII-only, and must not contain spaces, colons,
 ## or semicolons.
 
-define build.name = "VNProject"
+define build.name = "ProjectVN"
 
 
 ## Sounds and music ############################################################

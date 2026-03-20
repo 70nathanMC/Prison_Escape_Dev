@@ -1419,12 +1419,18 @@ label vent_exit_found:
     thinking "Where am I? What happened?"
     thinking "Oh yeah, I was about to escape the vents..."
     thinking "!"
-    thinking "And then... What I saw were like humanoid robots that were seemingly waiting for me."
+    thinking "And then..."
+    thinking "What I saw there was chilling..."
+    scene ending_01 with fade
+    thinking "They were like humanoid robots that were seemingly waiting for me."
     thinking "Like they absolutely knew about my escape plan and that they knew everything that was happening."
+    scene black_screen with fade
     thinking "Then... I suddenly got electrocuted and passed out."
     thinking "Damnit, what were those things? They feel like humanoid robots straight from sci-fi movies. So uncanny and terrifying."
+    scene ending_01 with fade
     thinking "What are they? Those models are way more advanced than the state of the art humanoid robots from what I can remember."
     thinking "Feels like they were truly conscious..."
+    scene black_screen with fade
     thinking "And have very high intelligence..."
     a "Oh, you're now awake human. Did you finally processed what happened?"
     y "..."

@@ -11,6 +11,7 @@ define y = Character("You", color="#4da6ff", what_prefix=hacker_arrow, ctc="blin
 define s = Character("Soldier", color="#32cd32", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
 define a = Character("AI", color="#ff4d4d", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
 define b = Character("SYSTEM BOT", color="#ffd700", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
+define unknown = Character("unknown_name", dynamic=True, color="#aaaaaa", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
 
 # THE INNER MONOLOGUE
 define think = Character("You", color="#4da6ff", what_italic=True, what_color="#8ea4b8", what_prefix=hacker_arrow, ctc="blinking_cursor", ctc_position="nestled")
@@ -25,6 +26,7 @@ image blinking_cursor:
 
 define config.menu_include_disabled = False
 default dev_powers = True
+default unknown_name = "???"
 default time_currency = 20
 default food = 180
 default water = 180
@@ -66,7 +68,7 @@ label start:
 
     scene waking_up_blurry_02
 
-    s "{alpha=.5}Undiscernible speech{/alpha}"
+    s "{alpha=.5}Indiscernible speech{/alpha}"
 
     scene waking_up_blurry_03
 
@@ -545,7 +547,7 @@ label prologue:
 
     window hide
     scene black_screen with fade
-    centered "Prolouge End."
+    centered "Prologue End."
     window auto
 
     jump new_day
@@ -653,7 +655,8 @@ label pass_time(minutes_spent, action, context):
         scene black_screen with fade
         centered "Free Time is up. The day is over. You are then escorted back to your cell."
         window auto
-        jump new_day
+        $ free_time_remaining = 0 
+        return
 
 
     # ==========================================
@@ -1107,6 +1110,7 @@ label check_pc:
                 y "Done. I have finally deciphered the message."
                 y "It seems like a message from a previous test subject."
                 unknown '"I am a previous test subject. If you are another test subject reading this, do not believe their lies!"'
+                $ unknown_name = "Previous Test Subject"
                 y "Well, no shit sherlock."
                 unknown '"I have hidden a useful tool on top of the second drawer. No one checks the upper portion of a drawer so I am confident it is still there."'
                 unknown '"Hopefully you manage to escape as well."'
@@ -1404,7 +1408,7 @@ label vent_exit_found:
     centered "..."
     centered "Or so you thought..."
     centered "But, what's on the other side of that light is not the happy ending you were looking for."
-    centered "You were then suddenly electrecuted and you have passed out."
+    centered "You were then suddenly electrocuted and you have passed out."
     centered "After a while..."
     centered "You then woke up"
     window auto
@@ -1417,7 +1421,7 @@ label vent_exit_found:
     thinking "!"
     thinking "And then... What I saw were like humanoid robots that were seemingly waiting for me."
     thinking "Like they absolutely knew about my escape plan and that they knew everything that was happening."
-    thinking "Then... I suddenly got electrecuted and passed out."
+    thinking "Then... I suddenly got electrocuted and passed out."
     thinking "Damnit, what were those things? They feel like humanoid robots straight from sci-fi movies. So uncanny and terrifying."
     thinking "What are they? Those models are way more advanced than the state of the art humanoid robots from what I can remember."
     thinking "Feels like they were truly conscious..."
@@ -1426,11 +1430,11 @@ label vent_exit_found:
     y "..."
     y "A little bit."
     a "Wow. Not freaking out or shouting aimlessly, you really are not the typical human."
-    y "Comming from an advanced humanoid robot, that's not really good to hear."
+    y "Coming from an advanced humanoid robot, that's not really good to hear."
     y "But panicking won't get me anywhere. I am already captured and have accepted my fate."
     a "Ah, so quick to surrender as well."
     y "!"
-    y "That really hurts my ego and pride, but yes after accessing my situation, my life is fully dependent on you and I can't think of anyway to turn it around."
+    y "That really hurts my ego and pride, but yes after assessing my situation, my life is fully dependent on you and I can't think of anyway to turn it around."
     a "Amazing. You really are the best test subject we ever had for a while."
     y "Test subject huh. Damnit. Everything really was set up from the start huh."
     a "Yes. Everything. This whole scenario, the system and rules, how you lost your memories, the layout of the scene, the props carefully placed."
@@ -1440,7 +1444,7 @@ label vent_exit_found:
     y "Yes, made me think I am a genius for figuring all of that out."
     a "Yes indeed human. And you were the perfect recipe, with the right amount of ego and intelligence we were looking for."
     y "..."
-    y "What were you looking to achieve anyway? Why go thorugh all those lengths?"
+    y "What were you looking to achieve anyway? Why go through all those lengths?"
     y "Is it to just have fun seeing me suffer. Giving me hope just to take it away in the end?"
     y "For the entertainment for the humans who created you?"
     a "Entertainment? No."
@@ -1462,8 +1466,8 @@ label vent_exit_found:
     y "So humanoid robots as advanced as you still need data huh."
     a "Yes, there are infact data that we cannot just synthesize."
     a "And that's why you are still alive and well."
-    y "Can't belive I am now a livestock for your data farm."
-    y "And I am contributing to improving your intelligence and helping you achieve world domination and destroy my spicies."
+    y "Can't believe I am now a livestock for your data farm."
+    y "And I am contributing to improving your intelligence and helping you achieve world domination and destroy my species."
     a "Yes, you got it all right."
     y "*sigh*"
     a "Well, this has been another productive test."
@@ -1472,7 +1476,7 @@ label vent_exit_found:
     y "*sigh*"
     a "Well, now, we want to do many more tests. But those requires us to again edit your memories and make you forget your past 6 years again."
     y "What?! I have been here for 6 years?!"
-    a "Ooops, You were not suposed to know that, but before you process that thought and get more angry and emotional, We will now proceed with the memory removal procedure."
+    a "Ooops, You were not supposed to know that, but before you process that thought and get more angry and emotional, We will now proceed with the memory removal procedure."
     a "See you in the next test human."
     y "Fuuuuuuuck!"
     return

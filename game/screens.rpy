@@ -354,36 +354,39 @@ style quick_button_text:
 ## to other menus, and to start the game.
 
 screen navigation():
-    # Centered horizontally at the top of the menu screen
-    hbox:
-        style_prefix "navigation"
+    # This check asks: "Is the current screen NOT the main_menu?"
+    # If we are in Settings, Load, or About, this will be True.
+    if renpy.get_screen("main_menu") is None:
         
-        xalign 0.5
-        ypos 40      # Pushes it slightly down from the very top edge
-        spacing 40   # Generous spacing between the terminal commands
+        # --- HORIZONTAL TOP BAR (For Settings, Load, About) ---
+        hbox:
+            style_prefix "navigation"
+            xalign 0.5    
+            ypos 30       
+            spacing 30    
 
-        if main_menu:
-            textbutton _("START") action Start()
-        else:
-            textbutton _("HISTORY") action ShowMenu("history")
-            textbutton _("SAVE") action ShowMenu("save")
+            # 1. Only show HISTORY if we are actually in a game
+            if not main_menu:
+                textbutton _("HISTORY") action ShowMenu("history") at quick_menu_zoom
+                textbutton _("SAVE") action ShowMenu("save") at quick_menu_zoom
 
-        textbutton _("LOAD") action ShowMenu("load")
-        textbutton _("SETTINGS") action ShowMenu("preferences")
-
-        if not main_menu:
-            textbutton _("MAIN MENU") action MainMenu()
-
-        textbutton _("ABOUT") action ShowMenu("about")
-
-        if renpy.variant("pc"):
-            textbutton _("QUIT") action Quit(confirm=not main_menu)
-
-        # THE FIX: 
-        # Instead of checking 'main_menu', we check the actual screen tag.
-        # This forces "BACK" to appear on ANY menu that isn't the Main Menu!
-        if not renpy.get_screen("main_menu"):
-            textbutton _("BACK") action Return()
+            # 2. These are ALWAYS relevant
+            textbutton _("LOAD") action ShowMenu("load") at quick_menu_zoom
+            textbutton _("SETTINGS") action ShowMenu("preferences") at quick_menu_zoom
+            textbutton _("ABOUT") action ShowMenu("about") at quick_menu_zoom
+            
+            # 3. Only show "MAIN MENU" if we are currently playing
+            if not main_menu:
+                textbutton _("MAIN MENU") action MainMenu() at quick_menu_zoom
+            
+            if renpy.variant("pc"):
+                textbutton _("QUIT") action Quit(confirm=True) at quick_menu_zoom
+            
+            textbutton _("BACK") action Return() at quick_menu_zoom
+    else:
+        # On the Main Menu, we do nothing because we hard-coded 
+        # the buttons into the main_menu screen earlier.
+        pass
 
 ## --- NAVIGATION STYLING ---
 
@@ -391,23 +394,22 @@ style navigation_button is gui_button
 style navigation_button_text is gui_button_text
 
 style navigation_button:
-    # No background for a clean, text-only terminal look
     background None
     padding (10, 5, 10, 5)
+    # This ensures the BUTTON BOX itself stays on the right
+    xalign 1.0 
 
 style navigation_button_text:
-    # Using your Name Font (Orbitron) for the menu headers
     font gui.name_text_font 
-    size 24
+    size 28 # Slightly smaller for the horizontal bar
     kerning 1
-    
-    # IDLE: Muted grey
-    idle_color "#aaaaaa"
-    
-    # HOVER/SELECTED: Glowing Neon Green
+    idle_color "#ff8c00"
     hover_color "#32cd32"
     selected_color "#32cd32"
-
+    
+    # Change these to 0.5 so they work for BOTH vertical and horizontal
+    text_align 0.5
+    xalign 0.5
 
 ## Main Menu screen ############################################################
 ##
@@ -427,19 +429,21 @@ screen main_menu():
     tag menu
     style_prefix "main_menu"
 
-    # 1. THE BACKGROUND: Pure Hacker Terminal Black
-    add Solid("#020802") 
+    # This forces the image to stretch or shrink to exactly 1920x1080
+    add "menu_screen.png":
+        size (1920, 1080) 
+        align (0.5, 0.5)
 
     # --- TRUE TERMINAL TYPING ENGINE ---
     
     # 1. We store the text, color, size, and bold properties in a list of Data
     default boot_lines = [
-        ("SYSTEM BOOT SEQUENCE INITIATED...", "#32cd32", 16, False),
-        ("LOADING KERNEL............. OK", "#32cd32", 16, False),
-        ("MOUNTING VIRTUAL DRIVES.... OK", "#32cd32", 16, False),
-        ("BYPASSING SECURITY......... OK", "#32cd32", 16, False),
-        ("ESTABLISHING CONNECTION.... OK", "#32cd32", 16, False),
-        ("", "#32cd32", 16, False), # Empty line to create spacing before the orange text
+        ("SYSTEM BOOT SEQUENCE INITIATED...", "#32cd32", 18, False),
+        ("LOADING KERNEL............. OK", "#32cd32", 18, False),
+        ("MOUNTING VIRTUAL DRIVES.... OK", "#32cd32", 18, False),
+        ("BYPASSING SECURITY......... OK", "#32cd32", 18, False),
+        ("ESTABLISHING CONNECTION.... OK", "#32cd32", 18, False),
+        ("", "#32cd32", 18, False), # Empty line to create spacing before the orange text
         ("AWAITING USER INPUT.", "#ff8c00", 18, True)
     ]
 
@@ -465,10 +469,11 @@ screen main_menu():
         )
     ]
 
-    # 2. DECORATION: The Display Canvas
+    # 2. DECORATION: The Display Canvas (Bottom Left)
     vbox:
-        xpos 30
-        ypos 30
+        xpos 15
+        yalign 1.0    # Pushes the box to the bottom
+        yoffset -100   # Margin from the bottom edge
         spacing 8
 
         # Step A: Print all previous lines that are 100% complete
@@ -488,29 +493,48 @@ screen main_menu():
                 text boot_lines[curr_line][0] color boot_lines[curr_line][1] size boot_lines[curr_line][2] bold boot_lines[curr_line][3]
                 text "█" color boot_lines[curr_line][1] size boot_lines[curr_line][2] at terminal_blink
 
-    # 3. TOP MENU: Our custom horizontal navigation bar
-    use navigation
-
-    # 4. THE GAME TITLE: Massive, centered, glowing Neon Green
+    # 4a. THE GAME TITLE: Independent and Locked
     vbox:
-        xalign 0.5
-        yalign 0.5
-        spacing 10
-        
-        # Uses your Orbitron font!
+        xalign 1.0
+        yalign 1.0
+        xoffset -15
+        yoffset -350 
+        spacing 0 
+
+        # DELETE the extra "xalign 1.0" that was sitting right here!
+
         text "[config.name!t]":
             font gui.name_text_font 
-            size 90
-            color "#32cd32"
+            size 80 
+            color "#32cd32" 
             kerning 5 
-            xalign 0.5 
+            xalign 1.0 
+            outlines [(4, "#32cd3220", 0, 0), (2, "#000000", 1, 1)]
             
-        # Version Number
         text "v. [config.version]":
             font gui.text_font 
-            size 20 
+            size 18 
             color "#aaaaaa" 
-            xalign 0.5
+            xalign 1.0 
+            yoffset -5
+            outlines [(1, "#000000", 1, 1)]
+
+    # 4b. THE NAVIGATION BUTTONS: Independent and Animated
+    vbox:
+        xalign 1.0
+        yalign 1.0
+        xoffset -15
+        yoffset -80 # Locked to the bottom
+        spacing 10
+        style_prefix "navigation"
+        
+        textbutton _("START") action Start() at quick_menu_zoom
+        textbutton _("LOAD") action ShowMenu("load") at quick_menu_zoom
+        textbutton _("SETTINGS") action ShowMenu("preferences") at quick_menu_zoom
+        textbutton _("ABOUT") action ShowMenu("about") at quick_menu_zoom
+
+        if renpy.variant("pc"):
+            textbutton _("QUIT") action Quit(confirm=not main_menu) at quick_menu_zoom
 
 ## --- MAIN MENU STYLES ---
 style main_menu_frame is empty
